@@ -7,6 +7,9 @@ import Settings from './components/Settings';
 import Detail from './components/Detail';
 import Task from './components/Task';
 import Auth from './components/Auth';
+import Trade from './components/Trade';
+import AiMarket from './components/AiMarket';
+import VerificationTestPage from './components/VerificationTestPage';
 
 function App() {
   return (
@@ -43,6 +46,24 @@ function App() {
         <Route 
           path="/task" 
           element={<Task />} 
+        />
+        
+        {/* 交易页面路由 - 直接访问，不需要登录 */}
+        <Route 
+          path="/trade" 
+          element={<Trade />} 
+        />
+        
+        {/* AI行情订阅页面路由 - 直接访问，不需要登录 */}
+        <Route 
+          path="/ai-market" 
+          element={<AiMarket />} 
+        />
+        
+        {/* 验证码测试页面路由 - 直接访问，不需要登录 */}
+        <Route 
+          path="/verification-test" 
+          element={<VerificationTestPage />} 
         />
       </Routes>
     </Router>

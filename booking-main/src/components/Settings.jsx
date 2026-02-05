@@ -59,10 +59,10 @@ const Settings = () => {
         <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-4">Account Management</h3>
         <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
           {/* ListItem: Switch Account */}
-          <div className="flex items-center gap-4 px-4 min-h-[72px] py-2 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <div className="flex items-center gap-4 px-4 min-h-[72px] py-2 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
             <div className="flex items-center gap-4">
               <div 
-                className="bg-center bg-no-repeat aspect-square bg-cover rounded-lg h-10 w-10" 
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-lg h-10 w-10 transition-transform duration-200 hover:scale-105" 
                 data-alt="Binance logo icon" 
                 style={{ 
                   backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDsACUCh86CFmbpUsyEmxuA2DYSiolfbw0r6kzm230hzyvXI_YbJBfuQ6OdEjz_Asu7Sv5BTD5wpCQeXdySf8ioCdyp0Uhug8RxeNg2TBNcmO93JvjJE4a0svQ9u90qPkjFD9DgPYIy7Qbt1bjjBncFzBzA_Q0RhkF0kZ-m4AgOVApwaMQzmPqq6p4sgNcv6t1eldYyWtMDZG9NTvHkg4DJlzPKFLuaWmcBehm8cFXw9TTSeAuR-IJ5xsT79oxhiqAhuEew9CbJk0fe")' 
@@ -74,20 +74,20 @@ const Settings = () => {
                 <p className="text-slate-500 dark:text-[#92adc9] text-xs font-normal leading-normal line-clamp-2">Active: Main Binance Account</p>
               </div>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 transition-transform duration-200 hover:translate-x-1">
               <span className="material-symbols-outlined text-slate-400">chevron_right</span>
             </div>
           </div>
           
           {/* ListItem: Add New */}
-          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
             <div className="flex items-center gap-4">
-              <div className="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10">
+              <div className="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
                 <span className="material-symbols-outlined">person_add</span>
               </div>
               <p className="text-slate-900 dark:text-white text-base font-normal leading-normal flex-1 truncate">Add New Account</p>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 transition-transform duration-200 hover:scale-110">
               <span className="material-symbols-outlined text-slate-400">add</span>
             </div>
           </div>
@@ -100,16 +100,16 @@ const Settings = () => {
             <label className="text-slate-500 dark:text-[#92adc9] text-xs font-semibold">Qwen LLM API Key</label>
             <div className="relative">
               <input 
-                className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary pr-12" 
+                className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary pr-12 transition-all duration-200" 
                 type="password" 
                 defaultValue="sk-qwen-78x9234892347239487" 
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer transition-all duration-200 hover:text-slate-600 dark:hover:text-white hover:scale-110">
                 <span className="material-symbols-outlined text-[20px]">visibility</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 mt-1">
-              <div className="size-2 rounded-full bg-emerald-500"></div>
+              <div className="size-2 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-tight">Connected</span>
             </div>
           </div>
@@ -123,13 +123,13 @@ const Settings = () => {
               <p className="text-slate-900 dark:text-white text-base font-medium">Email Alerts</p>
               <p className="text-slate-500 dark:text-[#92adc9] text-xs">Market signals &amp; trade updates</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer transition-transform duration-200 hover:scale-105">
               <input checked className="sr-only peer" type="checkbox" />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all duration-300 peer-checked:bg-primary"></div>
             </label>
           </div>
           <input 
-            className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary" 
+            className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary transition-all duration-200" 
             placeholder="alex.t@trading.com" 
             type="email" 
             defaultValue={user?.email}
@@ -142,20 +142,20 @@ const Settings = () => {
           {/* Theme Selection */}
           <div className="flex items-center gap-4 px-4 min-h-14 justify-between">
             <div className="flex items-center gap-4">
-              <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10">
+              <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
                 <span className="material-symbols-outlined">dark_mode</span>
               </div>
               <p className="text-slate-900 dark:text-white text-base font-normal">Theme</p>
             </div>
             <div className="flex bg-slate-100 dark:bg-background-dark p-1 rounded-lg">
               <button 
-                className={`px-3 py-1 text-xs font-bold rounded-md ${darkMode ? 'bg-white dark:bg-slate-800 shadow-sm text-primary' : 'text-slate-500 dark:text-[#92adc9]'}`}
+                className={`px-3 py-1 text-xs font-bold rounded-md ${darkMode ? 'bg-white dark:bg-slate-800 shadow-sm text-primary' : 'text-slate-500 dark:text-[#92adc9]'} transition-all duration-200 hover:opacity-90`}
                 onClick={toggleDarkMode}
               >
                 Dark
               </button>
               <button 
-                className={`px-3 py-1 text-xs font-bold rounded-md ${!darkMode ? 'bg-white dark:bg-slate-800 shadow-sm text-primary' : 'text-slate-500 dark:text-[#92adc9]'}`}
+                className={`px-3 py-1 text-xs font-bold rounded-md ${!darkMode ? 'bg-white dark:bg-slate-800 shadow-sm text-primary' : 'text-slate-500 dark:text-[#92adc9]'} transition-all duration-200 hover:opacity-90`}
                 onClick={toggleDarkMode}
               >
                 Light
@@ -164,32 +164,81 @@ const Settings = () => {
           </div>
           
           {/* Language */}
-          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
             <div className="flex items-center gap-4">
-              <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10">
+              <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
                 <span className="material-symbols-outlined">language</span>
               </div>
               <p className="text-slate-900 dark:text-white text-base font-normal">Language</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 transition-transform duration-200 hover:translate-x-1">
               <span className="text-sm text-slate-500 dark:text-[#92adc9]">English</span>
               <span className="material-symbols-outlined text-slate-400">chevron_right</span>
             </div>
           </div>
         </div>
         
-        {/* Danger Zone */}
-        <div className="mt-8 px-4 flex flex-col gap-3">
-          <button 
-            className="w-full py-4 bg-white dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 font-bold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-            onClick={handleSignOut}
-          >
-            Sign Out
-          </button>
-          <button className="w-full py-2 text-rose-500 text-sm font-medium hover:text-rose-600 transition-colors">
-            Delete Account
-          </button>
+        {/* Section: Subscription Management */}
+        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">Subscription Management</h3>
+        <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {/* Free Trial */}
+          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
+            <div className="flex items-center gap-4">
+              <div className="text-emerald-500 flex items-center justify-center rounded-lg bg-emerald-500/10 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
+                <span className="material-symbols-outlined">event_available</span>
+              </div>
+              <div className="flex flex-col justify-center">
+                <p className="text-slate-900 dark:text-white text-base font-medium">免费试用</p>
+                <p className="text-emerald-500 text-xs">3天全功能体验</p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <button className="bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-emerald-600 hover:scale-105 hover:shadow-lg">立即试用</button>
+            </div>
+          </div>
+          
+          {/* Monthly Subscription */}
+          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
+            <div className="flex items-center gap-4">
+              <div className="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <div className="flex flex-col justify-center">
+                <p className="text-slate-900 dark:text-white text-base font-medium">月付订阅</p>
+                <p className="text-slate-500 dark:text-[#92adc9] text-xs">USDT-ERC20/TRC20 支付</p>
+              </div>
+            </div>
+            <div className="shrink-0 transition-transform duration-200 hover:translate-x-1">
+              <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+            </div>
+          </div>
+          
+          {/* Subscription Status */}
+          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
+            <div className="flex items-center gap-4">
+              <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
+                <span className="material-symbols-outlined">receipt_long</span>
+              </div>
+              <div className="flex flex-col justify-center">
+                <p className="text-slate-900 dark:text-white text-base font-medium">订阅状态</p>
+                <p className="text-slate-500 dark:text-[#92adc9] text-xs">未订阅 • 可免费试用</p>
+              </div>
+            </div>
+            <div className="shrink-0 transition-transform duration-200 hover:translate-x-1">
+              <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+            </div>
+          </div>
         </div>
+        
+        {/* Danger Zone */}
+           <div className="mt-8 px-4 flex flex-col gap-3">
+             <button 
+               className="w-full py-4 bg-white dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 font-bold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 hover:shadow-md"
+               onClick={handleSignOut}
+             >
+               Sign Out
+             </button>
+           </div>
         
         {/* Footer Info */}
         <div className="mt-8 flex flex-col items-center gap-1 opacity-50">

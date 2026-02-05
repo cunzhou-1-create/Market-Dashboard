@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    password: ''
+    password: '',
+    code: ''
   });
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -26,10 +26,6 @@ const Auth = () => {
   const validateForm = () => {
     const errors = {};
     
-    if (!isLogin && !formData.name.trim()) {
-      errors.name = '姓名不能为空';
-    }
-    
     if (!formData.email.trim()) {
       errors.email = '邮箱不能为空';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -40,6 +36,10 @@ const Auth = () => {
       errors.password = '密码不能为空';
     } else if (formData.password.length < 6) {
       errors.password = '密码长度不能少于6个字符';
+    }
+    
+    if (!isLogin && !formData.code.trim()) {
+      errors.code = '验证码不能为空';
     }
     
     setFormErrors(errors);
@@ -70,7 +70,7 @@ const Auth = () => {
         if (isLogin) {
           await login(formData.email, formData.password);
         } else {
-          await register(formData.name, formData.email, formData.password);
+          await register(formData.email, formData.password, formData.code);
         }
       } catch (err) {
         // 错误已在AppContext中处理
@@ -85,7 +85,7 @@ const Auth = () => {
     // 重置表单数据
     setFormData(prev => ({
       ...prev,
-      name: ''
+      code: ''
     }));
   };
   
@@ -113,32 +113,6 @@ const Auth = () => {
         
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Field (Only for Register) */}
-          {!isLogin && (
-            <div className="transform transition-all duration-300 animate-slide-in">
-              <label 
-                htmlFor="name" 
-                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-              >
-                姓名
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="请输入您的姓名"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 transition-all duration-300 focus:border-primary/50 ${
-                  formErrors.name ? 'border-red-500' : ''
-                }`}
-              />
-              {formErrors.name && (
-                <p className="text-red-500 text-xs mt-1 animate-fade-in">{formErrors.name}</p>
-              )}
-            </div>
-          )}
-          
           {/* Email Field */}
           <div className="transform transition-all duration-300">
             <label 
@@ -162,6 +136,40 @@ const Auth = () => {
               <p className="text-red-500 text-xs mt-1 animate-fade-in">{formErrors.email}</p>
             )}
           </div>
+          
+          {/* Verification Code Field (Only for Register) */}
+          {!isLogin && (
+            <div className="transform transition-all duration-300 animate-slide-in">
+              <label 
+                htmlFor="code" 
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+              >
+                验证码
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  id="code"
+                  name="code"
+                  value={formData.code}
+                  onChange={handleChange}
+                  placeholder="请输入验证码"
+                  className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 transition-all duration-300 focus:border-primary/50 ${
+                    formErrors.code ? 'border-red-500' : ''
+                  }`}
+                />
+                <button
+                  type="button"
+                  className="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-300 whitespace-nowrap"
+                >
+                  获取验证码
+                </button>
+              </div>
+              {formErrors.code && (
+                <p className="text-red-500 text-xs mt-1 animate-fade-in">{formErrors.code}</p>
+              )}
+            </div>
+          )}
           
           {/* Password Field */}
           <div className="transform transition-all duration-300">
@@ -226,13 +234,6 @@ const Auth = () => {
               {isLogin ? '注册' : '登录'}
             </button>
           </p>
-        </div>
-        
-        {/* Demo Info */}
-        <div className="mt-8 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs text-slate-600 dark:text-slate-400">
-          <p className="font-medium mb-1">测试账号：</p>
-          <p>邮箱：test@example.com</p>
-          <p>密码：123456</p>
         </div>
       </div>
     </div>

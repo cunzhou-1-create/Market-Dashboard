@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 
 /**
  * 头部组件
- * 包含用户头像、现货/合约切换按钮、通知按钮和搜索框等功能
+ * 包含用户头像、通知按钮和搜索框等功能
  */
 const Header = () => {
   const navigate = useNavigate();
@@ -54,14 +54,6 @@ const Header = () => {
             </button>
           </div>
         )}
-        
-        {/* 现货/合约切换按钮 */}
-        <div className="flex-1 mx-3 flex items-center justify-center">
-          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-full p-1">
-            <button className="px-4 py-1 rounded-full bg-primary text-white text-sm font-bold">Spot</button>
-            <button className="px-4 py-1 rounded-full text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Futures</button>
-          </div>
-        </div>
         
         {/* 通知按钮 */}
         <div className="flex items-center gap-2">

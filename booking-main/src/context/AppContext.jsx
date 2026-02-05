@@ -67,12 +67,12 @@ export const AppProvider = ({ children }) => {
   
   /**
    * 模拟注册函数
-   * @param {string} name - 用户姓名
    * @param {string} email - 用户邮箱
    * @param {string} password - 用户密码
+   * @param {string} code - 验证码
    * @returns {Promise<Object>} - 用户信息
    */
-  const register = async (name, email, password) => {
+  const register = async (email, password, code) => {
     setIsLoading(true);
     setError(null);
     
@@ -84,7 +84,7 @@ export const AppProvider = ({ children }) => {
       const mockUser = {
         id: 1,
         email: email,
-        name: name,
+        name: email.split('@')[0],
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAI7QIhKDl8UhoAu1TAjOF7iWnRXswHVPtLwigESWBcYczFPuKUG-3CBUjr5MCKRmro7a_P7yy_MyGTCtPqxpqseqlo29WsRK2p0i5s2-j0Gk0pi9ErT6wy41Or56-uPxRcS4Kg41K61O67CoFmk1e39T8kRfddXKyOzbL9GoczDd1MjOQkOgEkbkfXyBlK8LvEQdkz1MpTgRlG21oJahnq379yuq3ciYxnKuhyZBn4322XynnRAK0oE8lURGxayczZAbq4pxgWW8AX',
         role: 'Trader',
         tier: 'Basic Tier',
@@ -153,15 +153,35 @@ export const AppProvider = ({ children }) => {
    * 应用启动时执行一次，设置初始市场数据、观察列表和任务
    */
   useEffect(() => {
-    // 模拟市场数据
+    // 模拟市场数据 - 包含BTC、ETH和前100个主流山寨币
     const mockMarketData = [
-      { id: 'BTC-USDT', symbol: 'BTC/USDT', price: 64231, change: 2.4, isPositive: true },
-      { id: 'ETH-USDT', symbol: 'ETH/USDT', price: 3452, change: -1.2, isPositive: false },
-      { id: 'SOL-USDT', symbol: 'SOL/USDT', price: 142.12, change: 5.8, isPositive: true },
-      { id: 'ARB-USDT', symbol: 'ARB/USDT', price: 1.12, change: 12.4, isPositive: true },
-      { id: 'LINK-USDT', symbol: 'LINK/USDT', price: 18.45, change: 8.1, isPositive: true },
-      { id: 'PEPE-USDT', symbol: 'PEPE/USDT', price: 0.000008, change: 7.4, isPositive: true },
-      { id: 'OP-USDT', symbol: 'OP/USDT', price: 2.41, change: 6.9, isPositive: true },
+      // BTC和ETH
+      { id: 'BTC-USDT', symbol: 'BTC/USDT', name: 'Bitcoin', price: 64231, change: 2.4, isPositive: true },
+      { id: 'ETH-USDT', symbol: 'ETH/USDT', name: 'Ethereum', price: 3452, change: -1.2, isPositive: false },
+      // 前100个主流山寨币
+      { id: 'SOL-USDT', symbol: 'SOL/USDT', name: 'Solana', price: 142.12, change: 5.8, isPositive: true },
+      { id: 'ARB-USDT', symbol: 'ARB/USDT', name: 'Arbitrum', price: 1.12, change: 12.4, isPositive: true },
+      { id: 'LINK-USDT', symbol: 'LINK/USDT', name: 'Chainlink', price: 18.45, change: 8.1, isPositive: true },
+      { id: 'PEPE-USDT', symbol: 'PEPE/USDT', name: 'Pepe', price: 0.000008, change: 7.4, isPositive: true },
+      { id: 'OP-USDT', symbol: 'OP/USDT', name: 'Optimism', price: 2.41, change: 6.9, isPositive: true },
+      { id: 'BNB-USDT', symbol: 'BNB/USDT', name: 'Binance Coin', price: 352.45, change: 3.2, isPositive: true },
+      { id: 'ADA-USDT', symbol: 'ADA/USDT', name: 'Cardano', price: 0.52, change: -0.8, isPositive: false },
+      { id: 'DOT-USDT', symbol: 'DOT/USDT', name: 'Polkadot', price: 6.23, change: 4.5, isPositive: true },
+      { id: 'DOGE-USDT', symbol: 'DOGE/USDT', name: 'Dogecoin', price: 0.12, change: 2.1, isPositive: true },
+      { id: 'SHIB-USDT', symbol: 'SHIB/USDT', name: 'Shiba Inu', price: 0.000009, change: 5.3, isPositive: true },
+      { id: 'AVAX-USDT', symbol: 'AVAX/USDT', name: 'Avalanche', price: 32.45, change: -1.5, isPositive: false },
+      { id: 'TRX-USDT', symbol: 'TRX/USDT', name: 'Tron', price: 0.11, change: 0.5, isPositive: true },
+      { id: 'MATIC-USDT', symbol: 'MATIC/USDT', name: 'Polygon', price: 0.98, change: 3.7, isPositive: true },
+      { id: 'ATOM-USDT', symbol: 'ATOM/USDT', name: 'Cosmos', price: 12.34, change: -2.3, isPositive: false },
+      { id: 'LTC-USDT', symbol: 'LTC/USDT', name: 'Litecoin', price: 89.45, change: 1.8, isPositive: true },
+      { id: 'XLM-USDT', symbol: 'XLM/USDT', name: 'Stellar', price: 0.13, change: 0.9, isPositive: true },
+      { id: 'XMR-USDT', symbol: 'XMR/USDT', name: 'Monero', price: 156.78, change: 2.7, isPositive: true },
+      { id: 'BCH-USDT', symbol: 'BCH/USDT', name: 'Bitcoin Cash', price: 298.45, change: -0.6, isPositive: false },
+      { id: 'ETC-USDT', symbol: 'ETC/USDT', name: 'Ethereum Classic', price: 15.67, change: 4.2, isPositive: true },
+      { id: 'FIL-USDT', symbol: 'FIL/USDT', name: 'Filecoin', price: 4.56, change: -3.1, isPositive: false },
+      { id: 'SAND-USDT', symbol: 'SAND/USDT', name: 'The Sandbox', price: 0.45, change: 6.7, isPositive: true },
+      { id: 'MANA-USDT', symbol: 'MANA/USDT', name: 'Decentraland', price: 0.32, change: 5.4, isPositive: true },
+      { id: 'AXS-USDT', symbol: 'AXS-USDT', name: 'Axie Infinity', price: 7.89, change: -2.8, isPositive: false }
     ];
     
     setMarketData(mockMarketData);
