@@ -12,7 +12,9 @@ const Auth = () => {
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   
-  const { login, register, isLoading, error, user } = useUser();
+  const { login, register, isLoading, error, user, getVerificationCode } = useUser();
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const navigate = useNavigate();
   
   // 如果用户已登录，重定向到首页
@@ -89,6 +91,44 @@ const Auth = () => {
     }));
   };
   
+  // 处理获取验证码
+  const handleGetCode = async () => {
+    if (isSendingCode || countdown > 0) return;
+    
+    // 验证邮箱格式
+    if (!formData.email.trim()) {
+      setFormErrors(prev => ({ ...prev, email: '请输入邮箱地址' }));
+      return;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setFormErrors(prev => ({ ...prev, email: '请输入有效的邮箱地址' }));
+      return;
+    }
+    
+    try {
+      setIsSendingCode(true);
+      await getVerificationCode(formData.email);
+      
+      // 显示成功提示
+      alert('验证码已发送到您的邮箱，请查收');
+      
+      // 开始倒计时
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      // 错误已在UserContext中处理
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-4">
       <div className="w-full max-w-md bg-white dark:bg-card-dark rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800 transform transition-all duration-300 hover:shadow-xl">
@@ -160,9 +200,20 @@ const Auth = () => {
                 />
                 <button
                   type="button"
-                  className="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-300 whitespace-nowrap"
+                  onClick={handleGetCode}
+                  disabled={isSendingCode || countdown > 0}
+                  className="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-300 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  获取验证码
+                  {isSendingCode ? (
+                    <div className="flex items-center justify-center">
+                      <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-slate-500 border-t-transparent mr-2"></span>
+                      发送中...
+                    </div>
+                  ) : countdown > 0 ? (
+                    `${countdown}秒后重试`
+                  ) : (
+                    '获取验证码'
+                  )}
                 </button>
               </div>
               {formErrors.code && (

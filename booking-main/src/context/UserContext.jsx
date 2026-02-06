@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import api from '../services/api';
 
 /**
  * 用户上下文
@@ -18,7 +19,7 @@ export const UserProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   /**
-   * 模拟登录函数
+   * 登录函数
    * @param {string} email - 用户邮箱
    * @param {string} password - 用户密码
    * @returns {Promise<Object>} - 用户信息
@@ -28,25 +29,22 @@ export const UserProvider = ({ children }) => {
     setError(null);
     
     try {
-      // 模拟API请求
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 调用真实API登录
+      const response = await api.auth.login(email, password);
       
-      // 模拟用户数据
-      const mockUser = {
-        id: 1,
-        email: email,
-        name: 'Alex Thompson',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAI7QIhKDl8UhoAu1TAjOF7iWnRXswHVPtLwigESWBcYczFPuKUG-3CBUjr5MCKRmro7a_P7yy_MyGTCtPqxpqseqlo29WsRK2p0i5s2-j0Gk0pi9ErT6wy41Or56-uPxRcS4Kg41K61O67CoFmk1e39T8kRfddXKyOzbL9GoczDd1MjOQkOgEkbkfXyBlK8LvEQdkz1MpTgRlG21oJahnq379yuq3ciYxnKuhyZBn4322XynnRAK0oE8lURGxayczZAbq4pxgWW8AX',
-        role: 'Pro Trader',
-        tier: 'AI Tier',
-        joinedAt: 'Oct 2023'
-      };
+      // 保存token
+      localStorage.setItem('token', response.access_token);
       
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      return mockUser;
+      // 获取用户信息
+      const userInfo = await api.auth.getCurrentUser();
+      
+      // 保存用户信息
+      setUser(userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
+      
+      return userInfo;
     } catch (err) {
-      setError('登录失败，请检查您的邮箱和密码');
+      setError(err.message || '登录失败，请检查您的邮箱和密码');
       throw err;
     } finally {
       setIsLoading(false);
@@ -54,7 +52,7 @@ export const UserProvider = ({ children }) => {
   };
   
   /**
-   * 模拟注册函数
+   * 注册函数
    * @param {string} email - 用户邮箱
    * @param {string} password - 用户密码
    * @param {string} code - 验证码
@@ -65,25 +63,22 @@ export const UserProvider = ({ children }) => {
     setError(null);
     
     try {
-      // 模拟API请求
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 调用真实API注册
+      const response = await api.auth.register(email, password, code);
       
-      // 模拟用户数据
-      const mockUser = {
-        id: 1,
-        email: email,
-        name: email.split('@')[0],
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAI7QIhKDl8UhoAu1TAjOF7iWnRXswHVPtLwigESWBcYczFPuKUG-3CBUjr5MCKRmro7a_P7yy_MyGTCtPqxpqseqlo29WsRK2p0i5s2-j0Gk0pi9ErT6wy41Or56-uPxRcS4Kg41K61O67CoFmk1e39T8kRfddXKyOzbL9GoczDd1MjOQkOgEkbkfXyBlK8LvEQdkz1MpTgRlG21oJahnq379yuq3ciYxnKuhyZBn4322XynnRAK0oE8lURGxayczZAbq4pxgWW8AX',
-        role: 'Trader',
-        tier: 'Basic Tier',
-        joinedAt: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-      };
+      // 保存token
+      localStorage.setItem('token', response.access_token);
       
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      return mockUser;
+      // 获取用户信息
+      const userInfo = await api.auth.getCurrentUser();
+      
+      // 保存用户信息
+      setUser(userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
+      
+      return userInfo;
     } catch (err) {
-      setError('注册失败，请稍后重试');
+      setError(err.message || '注册失败，请稍后重试');
       throw err;
     } finally {
       setIsLoading(false);
@@ -97,6 +92,7 @@ export const UserProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
   
   /**
@@ -108,6 +104,113 @@ export const UserProvider = ({ children }) => {
       const updatedUser = { ...user, email };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+  
+  /**
+   * 获取验证码
+   * @param {string} email - 用户邮箱
+   * @returns {Promise<void>}
+   */
+  const getVerificationCode = async (email) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await api.auth.resendCode(email);
+      return true;
+    } catch (err) {
+      setError(err.message || '发送验证码失败，请稍后重试');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  /**
+   * 获取用户资料
+   * @returns {Promise<Object|null>} - 用户资料
+   */
+  const getProfile = async () => {
+    try {
+      const profile = await api.user.getProfile();
+      setUser(profile);
+      localStorage.setItem('user', JSON.stringify(profile));
+      return profile;
+    } catch (err) {
+      console.error('获取用户资料失败:', err);
+      return null;
+    }
+  };
+  
+  /**
+   * 更新用户资料
+   * @param {string} name - 用户名
+   * @param {string} avatar - 头像URL
+   * @returns {Promise<Object|null>} - 更新后的用户资料
+   */
+  const updateProfile = async (name, avatar) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const updatedProfile = await api.user.updateProfile(name, avatar);
+      setUser(updatedProfile);
+      localStorage.setItem('user', JSON.stringify(updatedProfile));
+      return updatedProfile;
+    } catch (err) {
+      setError(err.message || '更新用户资料失败，请稍后重试');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  /**
+   * 上传头像
+   * @param {File} file - 头像文件
+   * @returns {Promise<Object|null>} - 更新后的用户资料
+   */
+  const uploadAvatar = async (file) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const updatedProfile = await api.user.uploadAvatar(file);
+      setUser(updatedProfile);
+      localStorage.setItem('user', JSON.stringify(updatedProfile));
+      return updatedProfile;
+    } catch (err) {
+      setError(err.message || '上传头像失败，请稍后重试');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  /**
+   * 获取用户统计信息
+   * @returns {Promise<Object|null>} - 用户统计信息
+   */
+  const getUserStats = async () => {
+    try {
+      return await api.user.getStats();
+    } catch (err) {
+      console.error('获取用户统计信息失败:', err);
+      return null;
+    }
+  };
+  
+  /**
+   * 获取登录历史记录
+   * @returns {Promise<Object|null>} - 登录历史记录
+   */
+  const getLoginHistory = async () => {
+    try {
+      return await api.user.getLoginHistory();
+    } catch (err) {
+      console.error('获取登录历史记录失败:', err);
+      return null;
     }
   };
   
@@ -130,7 +233,13 @@ export const UserProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateEmail
+    updateEmail,
+    getVerificationCode,
+    getProfile,
+    updateProfile,
+    uploadAvatar,
+    getUserStats,
+    getLoginHistory
   };
   
   return (

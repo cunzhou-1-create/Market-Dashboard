@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -14,6 +14,8 @@ class TradeRecord(Base):
     price = Column(Float, nullable=False)
     quantity = Column(Float, nullable=False)
     total = Column(Float, nullable=False)
+    is_ai_trade = Column(Boolean, default=False)  # 是否为AI生成的交易
+    ai_signal_id = Column(Integer, nullable=True)  # AI信号ID
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -27,3 +29,19 @@ class ApiKey(Base):
     api_key_hash = Column(String(255), nullable=False)
     is_connected = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AITradeSignal(Base):
+    """AI交易信号模型"""
+    __tablename__ = "ai_trade_signals"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(50), nullable=False, index=True)
+    side = Column(String(10), nullable=False)  # 'buy' 或 'sell'
+    price = Column(Float, nullable=False)
+    quantity = Column(Float, nullable=False)
+    signal_data = Column(String(500), nullable=True)  # 原始信号数据
+    is_executed = Column(Boolean, default=False)  # 是否已执行
+    executed_trade_id = Column(Integer, nullable=True)  # 关联的交易记录ID
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    executed_at = Column(DateTime(timezone=True), nullable=True)

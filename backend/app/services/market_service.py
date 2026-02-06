@@ -109,25 +109,26 @@ class MarketService:
     @staticmethod
     def get_watchlist(db: Session, user_id: int) -> List[Dict]:
         """获取用户的观察列表"""
-        # 查询观察列表
-        watchlist_items = db.query(Watchlist).filter(Watchlist.user_id == user_id).all()
+        # 使用JOIN一次性获取观察列表和对应的市场数据
+        from sqlalchemy import join
+        
+        watchlist_with_market = db.query(Watchlist, MarketData).join(
+            MarketData, Watchlist.symbol_id == MarketData.id
+        ).filter(Watchlist.user_id == user_id).all()
         
         # 构建响应数据
         result = []
-        for item in watchlist_items:
-            # 获取对应的市场数据
-            market_data = db.query(MarketData).filter(MarketData.id == item.symbol_id).first()
-            if market_data:
-                result.append({
-                    "id": item.id,
-                    "user_id": item.user_id,
-                    "symbol_id": item.symbol_id,
-                    "symbol": market_data.symbol,
-                    "name": market_data.name,
-                    "price": market_data.price,
-                    "change": market_data.change,
-                    "is_positive": market_data.is_positive,
-                    "created_at": item.created_at
-                })
+        for watchlist_item, market_data in watchlist_with_market:
+            result.append({
+                "id": watchlist_item.id,
+                "user_id": watchlist_item.user_id,
+                "symbol_id": watchlist_item.symbol_id,
+                "symbol": market_data.symbol,
+                "name": market_data.name,
+                "price": market_data.price,
+                "change": market_data.change,
+                "is_positive": market_data.is_positive,
+                "created_at": watchlist_item.created_at
+            })
         
         return result

@@ -22,7 +22,9 @@ class TradeService:
             side=trade_data.side,
             price=trade_data.price,
             quantity=trade_data.quantity,
-            total=total
+            total=total,
+            is_ai_trade=trade_data.is_ai_trade,
+            ai_signal_id=trade_data.ai_signal_id
         )
         
         db.add(new_trade)

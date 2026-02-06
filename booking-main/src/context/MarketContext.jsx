@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import api from '../services/api';
 
 /**
  * 市场数据上下文
@@ -16,49 +17,171 @@ export const MarketProvider = ({ children }) => {
   const [marketData, setMarketData] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const [priceAlerts, setPriceAlerts] = useState([]);
+  const [marketType, setMarketType] = useState('spot'); // 'spot' 现货, 'futures' 期货
+  const [spotData, setSpotData] = useState([]);
+  const [futuresData, setFuturesData] = useState([]);
 
   /**
    * 添加到观察列表
    * @param {string} symbolId - 交易对ID
+   * @returns {Promise<boolean>} - 是否添加成功
    */
-  const addToWatchlist = (symbolId) => {
-    if (!watchlist.includes(symbolId)) {
-      const newWatchlist = [...watchlist, symbolId];
-      setWatchlist(newWatchlist);
-      localStorage.setItem('watchlist', JSON.stringify(newWatchlist));
+  const addToWatchlist = async (symbolId) => {
+    try {
+      // 调用真实API添加到观察列表
+      await api.market.addToWatchlist(symbolId);
+      
+      // 更新本地状态
+      if (!watchlist.includes(symbolId)) {
+        const newWatchlist = [...watchlist, symbolId];
+        setWatchlist(newWatchlist);
+        localStorage.setItem('watchlist', JSON.stringify(newWatchlist));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('添加到观察列表失败:', error);
+      return false;
     }
   };
 
   /**
    * 从观察列表移除
    * @param {string} symbolId - 交易对ID
+   * @returns {Promise<boolean>} - 是否移除成功
    */
-  const removeFromWatchlist = (symbolId) => {
-    const newWatchlist = watchlist.filter(id => id !== symbolId);
-    setWatchlist(newWatchlist);
-    localStorage.setItem('watchlist', JSON.stringify(newWatchlist));
+  const removeFromWatchlist = async (symbolId) => {
+    try {
+      // 调用真实API从观察列表移除
+      await api.market.removeFromWatchlist(symbolId);
+      
+      // 更新本地状态
+      const newWatchlist = watchlist.filter(id => id !== symbolId);
+      setWatchlist(newWatchlist);
+      localStorage.setItem('watchlist', JSON.stringify(newWatchlist));
+      
+      return true;
+    } catch (error) {
+      console.error('从观察列表移除失败:', error);
+      return false;
+    }
   };
 
   /**
-   * 预留API：获取市场数据
+   * 获取市场数据
    * @returns {Promise<Array>} - 市场数据
    */
   const fetchMarketData = async () => {
-    // 预留API调用位置
-    // 后续实现：调用真实API获取市场数据
-    // 暂时返回模拟数据
-    return marketData;
+    try {
+      // 调用真实API获取市场数据
+      const response = await api.market.getMarketList();
+      const data = response.data || [];
+      setMarketData(data);
+      return data;
+    } catch (error) {
+      console.error('获取市场数据失败:', error);
+      // 发生错误时返回当前数据
+      return marketData;
+    }
   };
 
   /**
-   * 预留API：获取价格预警列表
+   * 获取价格预警列表
    * @returns {Promise<Array>} - 价格预警列表
    */
   const fetchPriceAlerts = async () => {
-    // 预留API调用位置
-    // 后续实现：调用真实API获取价格预警列表
-    // 暂时返回模拟数据
-    return priceAlerts;
+    try {
+      // 调用真实API获取价格预警列表
+      const alerts = await api.alerts.getAlerts();
+      setPriceAlerts(alerts);
+      return alerts;
+    } catch (error) {
+      console.error('获取价格预警列表失败:', error);
+      // 发生错误时返回当前数据
+      return priceAlerts;
+    }
+  };
+  
+  /**
+   * 创建价格预警
+   * @param {Object} alertData - 价格预警数据
+   * @returns {Promise<Object|null>} - 创建的价格预警
+   */
+  const createPriceAlert = async (alertData) => {
+    try {
+      // 调用真实API创建价格预警
+      const alert = await api.alerts.createAlert(alertData);
+      
+      // 更新本地状态
+      setPriceAlerts(prev => [...prev, alert]);
+      return alert;
+    } catch (error) {
+      console.error('创建价格预警失败:', error);
+      return null;
+    }
+  };
+  
+  /**
+   * 更新价格预警
+   * @param {number} alertId - 价格预警ID
+   * @param {Object} alertData - 价格预警数据
+   * @returns {Promise<Object|null>} - 更新后的价格预警
+   */
+  const updatePriceAlert = async (alertId, alertData) => {
+    try {
+      // 调用真实API更新价格预警
+      const alert = await api.alerts.updateAlert(alertId, alertData);
+      
+      // 更新本地状态
+      setPriceAlerts(prev => prev.map(item => 
+        item.id === alertId ? alert : item
+      ));
+      return alert;
+    } catch (error) {
+      console.error('更新价格预警失败:', error);
+      return null;
+    }
+  };
+  
+  /**
+   * 删除价格预警
+   * @param {number} alertId - 价格预警ID
+   * @returns {Promise<boolean>} - 是否删除成功
+   */
+  const deletePriceAlert = async (alertId) => {
+    try {
+      // 调用真实API删除价格预警
+      await api.alerts.deleteAlert(alertId);
+      
+      // 更新本地状态
+      setPriceAlerts(prev => prev.filter(item => item.id !== alertId));
+      return true;
+    } catch (error) {
+      console.error('删除价格预警失败:', error);
+      return false;
+    }
+  };
+  
+  /**
+   * 切换价格预警状态
+   * @param {number} alertId - 价格预警ID
+   * @returns {Promise<boolean|null>} - 切换后的状态
+   */
+  const togglePriceAlert = async (alertId) => {
+    try {
+      // 调用真实API切换价格预警状态
+      const response = await api.alerts.toggleAlert(alertId);
+      const { is_active } = response;
+      
+      // 更新本地状态
+      setPriceAlerts(prev => prev.map(item => 
+        item.id === alertId ? { ...item, is_active } : item
+      ));
+      return is_active;
+    } catch (error) {
+      console.error('切换价格预警状态失败:', error);
+      return null;
+    }
   };
 
   /**
@@ -75,8 +198,8 @@ export const MarketProvider = ({ children }) => {
       setWatchlist([]);
     }
 
-    // 模拟市场数据 - 包含BTC、ETH和前100个主流山寨币
-    const mockMarketData = [
+    // 模拟现货数据 - 包含BTC、ETH和前100个主流山寨币
+    const mockSpotData = [
       // BTC和ETH
       { id: 'BTC-USDT', symbol: 'BTC/USDT', name: 'Bitcoin', price: 64231, change: 2.4, isPositive: true },
       { id: 'ETH-USDT', symbol: 'ETH/USDT', name: 'Ethereum', price: 3452, change: -1.2, isPositive: false },
@@ -106,7 +229,25 @@ export const MarketProvider = ({ children }) => {
       { id: 'AXS-USDT', symbol: 'AXS-USDT', name: 'Axie Infinity', price: 7.89, change: -2.8, isPositive: false }
     ];
     
-    setMarketData(mockMarketData);
+    // 模拟期货数据 - 包含主要期货合约
+    const mockFuturesData = [
+      // BTC和ETH期货
+      { id: 'BTC-USDT-F', symbol: 'BTC/USDT', name: 'Bitcoin Futures', price: 64350, change: 2.6, isPositive: true },
+      { id: 'ETH-USDT-F', symbol: 'ETH/USDT', name: 'Ethereum Futures', price: 3465, change: -1.0, isPositive: false },
+      // 其他主流币期货
+      { id: 'SOL-USDT-F', symbol: 'SOL/USDT', name: 'Solana Futures', price: 143.25, change: 6.1, isPositive: true },
+      { id: 'BNB-USDT-F', symbol: 'BNB/USDT', name: 'Binance Coin Futures', price: 353.75, change: 3.4, isPositive: true },
+      { id: 'ADA-USDT-F', symbol: 'ADA/USDT', name: 'Cardano Futures', price: 0.53, change: -0.6, isPositive: false },
+      { id: 'DOT-USDT-F', symbol: 'DOT/USDT', name: 'Polkadot Futures', price: 6.28, change: 4.8, isPositive: true },
+      { id: 'DOGE-USDT-F', symbol: 'DOGE/USDT', name: 'Dogecoin Futures', price: 0.12, change: 2.3, isPositive: true },
+      { id: 'AVAX-USDT-F', symbol: 'AVAX/USDT', name: 'Avalanche Futures', price: 32.58, change: -1.3, isPositive: false },
+      { id: 'MATIC-USDT-F', symbol: 'MATIC/USDT', name: 'Polygon Futures', price: 0.99, change: 3.9, isPositive: true },
+      { id: 'LTC-USDT-F', symbol: 'LTC/USDT', name: 'Litecoin Futures', price: 89.75, change: 2.0, isPositive: true }
+    ];
+    
+    setSpotData(mockSpotData);
+    setFuturesData(mockFuturesData);
+    setMarketData(marketType === 'spot' ? mockSpotData : mockFuturesData);
     
     // 模拟价格预警任务
     const mockPriceAlerts = [
@@ -142,15 +283,28 @@ export const MarketProvider = ({ children }) => {
     setPriceAlerts(mockPriceAlerts);
   }, []);
   
+  // 当市场类型变化时，更新市场数据
+  useEffect(() => {
+    setMarketData(marketType === 'spot' ? spotData : futuresData);
+  }, [marketType, spotData, futuresData]);
+  
   // 上下文值，包含所有状态和方法
   const contextValue = {
     marketData,
     watchlist,
     priceAlerts,
+    marketType,
+    setMarketType,
+    spotData,
+    futuresData,
     addToWatchlist,
     removeFromWatchlist,
     fetchMarketData,
-    fetchPriceAlerts
+    fetchPriceAlerts,
+    createPriceAlert,
+    updatePriceAlert,
+    deletePriceAlert,
+    togglePriceAlert
   };
   
   return (

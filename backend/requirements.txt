@@ -11,3 +11,6 @@ aiofiles
 pandas
 numpy
 ccxt
+requests
+schedule
+anthropic

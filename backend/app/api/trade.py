@@ -1,11 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict
 from app.database import get_db
-from app.schemas.trade import TradeRecordCreate, TradeRecordResponse, TradeHistoryResponse, AccountInfo, ApiKeyCreate, ApiKeyResponse
+from app.schemas.trade import (
+    TradeRecordCreate, TradeRecordResponse, TradeHistoryResponse, 
+    AccountInfo, ApiKeyCreate, ApiKeyResponse, AITradeSignalResponse
+)
 from app.services.trade_service import TradeService
+from app.services.ai_service import AIService
+from app.services.scheduler_service import get_ai_trade_scheduler_status, start_ai_trade_scheduler, stop_ai_trade_scheduler
 from app.api.auth import get_current_user
 from app.models.user import User
+from app.models.trade import AITradeSignal
 
 router = APIRouter()
 
@@ -90,3 +96,87 @@ def delete_api_key(
         )
     
     return {"message": "API密钥已删除"}
+
+
+# 获取AI交易信号列表
+@router.get("/ai/signals", response_model=List[AITradeSignalResponse])
+def get_ai_trade_signals(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取AI交易信号列表"""
+    signals = db.query(AITradeSignal).order_by(
+        AITradeSignal.created_at.desc()
+    ).offset(skip).limit(limit).all()
+    
+    return signals
+
+
+# 获取AI交易调度器状态
+@router.get("/ai/scheduler/status", response_model=Dict)
+def get_scheduler_status(
+    current_user: User = Depends(get_current_user)
+):
+    """获取AI交易调度器状态"""
+    status = get_ai_trade_scheduler_status()
+    return status
+
+
+# 启动AI交易调度器
+@router.post("/ai/scheduler/start")
+def start_scheduler(
+    current_user: User = Depends(get_current_user)
+):
+    """启动AI交易调度器"""
+    start_ai_trade_scheduler()
+    return {"message": "AI交易调度器已启动"}
+
+
+# 停止AI交易调度器
+@router.post("/ai/scheduler/stop")
+def stop_scheduler(
+    current_user: User = Depends(get_current_user)
+):
+    """停止AI交易调度器"""
+    stop_ai_trade_scheduler()
+    return {"message": "AI交易调度器已停止"}
+
+
+# 获取市场分析
+@router.get("/ai/market-analysis", response_model=Dict)
+def get_market_analysis(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取AI市场分析"""
+    ai_service = AIService()
+    analysis = ai_service.analyze_market(db)
+    if not analysis:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取市场分析失败"
+        )
+    
+    return analysis
+
+
+# 手动触发AI交易
+@router.post("/ai/trigger")
+def trigger_ai_trade(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """手动触发AI交易"""
+    ai_service = AIService()
+    signal = ai_service.generate_trade_signal(db)
+    
+    if signal:
+        result = ai_service.execute_trade_signal(db, current_user.id, signal)
+        return result
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="生成交易信号失败"
+        )

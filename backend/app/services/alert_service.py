@@ -102,28 +102,29 @@ class AlertService:
     @staticmethod
     def get_user_alerts(db: Session, user_id: int) -> List[Dict]:
         """获取用户的价格预警列表"""
-        # 查询价格预警
-        alerts = db.query(PriceAlert).filter(PriceAlert.user_id == user_id).all()
+        # 使用JOIN一次性获取价格预警和对应的市场数据
+        from sqlalchemy import join
+        
+        alerts_with_market = db.query(PriceAlert, MarketData).join(
+            MarketData, PriceAlert.symbol_id == MarketData.id
+        ).filter(PriceAlert.user_id == user_id).all()
         
         # 构建响应数据
         result = []
-        for alert in alerts:
-            # 获取对应的市场数据
-            market_data = db.query(MarketData).filter(MarketData.id == alert.symbol_id).first()
-            if market_data:
-                result.append({
-                    "id": alert.id,
-                    "user_id": alert.user_id,
-                    "symbol_id": alert.symbol_id,
-                    "symbol": market_data.symbol,
-                    "name": market_data.name,
-                    "condition": alert.condition,
-                    "threshold": alert.threshold,
-                    "frequency": alert.frequency,
-                    "is_active": alert.is_active,
-                    "created_at": alert.created_at,
-                    "updated_at": alert.updated_at
-                })
+        for alert, market_data in alerts_with_market:
+            result.append({
+                "id": alert.id,
+                "user_id": alert.user_id,
+                "symbol_id": alert.symbol_id,
+                "symbol": market_data.symbol,
+                "name": market_data.name,
+                "condition": alert.condition,
+                "threshold": alert.threshold,
+                "frequency": alert.frequency,
+                "is_active": alert.is_active,
+                "created_at": alert.created_at,
+                "updated_at": alert.updated_at
+            })
         
         return result
     

@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     BINANCE_API_KEY: Optional[str] = None
     BINANCE_API_SECRET: Optional[str] = None
     
+    # 千问API配置
+    QWEN_API_KEY: Optional[str] = None
+    QWEN_API_URL: str = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+    
+    # AI交易配置
+    AI_TRADE_ENABLED: bool = False
+    AI_TRADE_INTERVAL: int = 30  # 交易信号获取间隔（分钟）
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

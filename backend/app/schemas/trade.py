@@ -14,13 +14,16 @@ class TradeRecordBase(BaseModel):
 
 class TradeRecordCreate(TradeRecordBase):
     """交易记录创建模型"""
-    pass
+    is_ai_trade: bool = False
+    ai_signal_id: Optional[int] = None
 
 
 class TradeRecordResponse(TradeRecordBase):
     """交易记录响应模型"""
     id: int
     user_id: int
+    is_ai_trade: bool
+    ai_signal_id: Optional[int]
     timestamp: datetime
     
     class Config:
@@ -58,6 +61,32 @@ class ApiKeyResponse(BaseModel):
     provider: str
     is_connected: bool
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class AITradeSignalBase(BaseModel):
+    """AI交易信号基础模型"""
+    symbol: str
+    side: str
+    price: float
+    quantity: float
+    signal_data: Optional[str] = None
+
+
+class AITradeSignalCreate(AITradeSignalBase):
+    """AI交易信号创建模型"""
+    pass
+
+
+class AITradeSignalResponse(AITradeSignalBase):
+    """AI交易信号响应模型"""
+    id: int
+    is_executed: bool
+    executed_trade_id: Optional[int]
+    created_at: datetime
+    executed_at: Optional[datetime]
     
     class Config:
         from_attributes = True

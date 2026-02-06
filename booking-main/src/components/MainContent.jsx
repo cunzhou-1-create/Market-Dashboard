@@ -8,7 +8,7 @@ import { useMarket } from '../context/MarketContext';
  */
 const MainContent = () => {
   const navigate = useNavigate();
-  const { marketData } = useMarket();
+  const { marketData, marketType, setMarketType } = useMarket();
   
   // 选中的菜单状态
   const [selectedMenu, setSelectedMenu] = useState('real-time');
@@ -33,6 +33,30 @@ const MainContent = () => {
       <div className="px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">市场监控</h2>
+          
+          {/* 期货/现货切换按钮组 */}
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+            <button 
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                marketType === 'spot' 
+                  ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-300 hover:text-primary'
+              }`}
+              onClick={() => setMarketType('spot')}
+            >
+              现货
+            </button>
+            <button 
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                marketType === 'futures' 
+                  ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-300 hover:text-primary'
+              }`}
+              onClick={() => setMarketType('futures')}
+            >
+              期货
+            </button>
+          </div>
         </div>
         
         {/* 菜单选项卡 */}
