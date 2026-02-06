@@ -29,6 +29,12 @@ export const AppProvider = ({ children }) => {
   // 深色模式状态
   const [darkMode, setDarkMode] = useState(true);
   
+  // 邮件预警状态
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  
+  // 语言状态
+  const [language, setLanguage] = useState('en');
+  
   /**
    * 模拟登录函数
    * @param {string} email - 用户邮箱
@@ -129,7 +135,27 @@ export const AppProvider = ({ children }) => {
   };
   
   /**
-   * 从本地存储加载用户和深色模式设置
+   * 切换邮件预警
+   * 更新状态和本地存储
+   */
+  const toggleEmailAlerts = () => {
+    const newState = !emailAlerts;
+    setEmailAlerts(newState);
+    localStorage.setItem('emailAlerts', JSON.stringify(newState));
+  };
+  
+  /**
+   * 设置语言
+   * 更新状态和本地存储
+   * @param {string} lang - 语言代码 ('en' 或 'zh')
+   */
+  const updateLanguage = (lang) => {
+    setLanguage(lang);
+    localStorage.setItem('language', JSON.stringify(lang));
+  };
+  
+  /**
+   * 从本地存储加载用户和设置
    * 应用启动时执行一次
    */
   useEffect(() => {
@@ -145,6 +171,16 @@ export const AppProvider = ({ children }) => {
       if (mode) {
         document.documentElement.classList.add('dark');
       }
+    }
+    
+    const savedEmailAlerts = localStorage.getItem('emailAlerts');
+    if (savedEmailAlerts) {
+      setEmailAlerts(JSON.parse(savedEmailAlerts));
+    }
+    
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage) {
+      setLanguage(JSON.parse(savedLanguage));
     }
   }, []);
   
@@ -303,88 +339,47 @@ export const AppProvider = ({ children }) => {
   };
   
   /**
-   * 添加订阅任务
-   * @param {Object} task - 任务信息
+   * 预留API：获取市场数据
+   * @returns {Promise<Array>} - 市场数据
    */
-  const addTask = (task) => {
-    const newTask = {
-      id: Date.now(),
-      ...task,
-      lastChecked: 'Just now',
-      isActive: true
-    };
-    setTasks([newTask, ...tasks]);
+  const fetchMarketData = async () => {
+    // 预留API调用位置
+    // 后续实现：调用真实API获取市场数据
+    // 暂时返回模拟数据
+    return marketData;
   };
   
   /**
-   * 更新订阅任务
-   * @param {number} taskId - 任务ID
-   * @param {Object} updates - 更新的任务信息
+   * 预留API：获取用户信息
+   * @returns {Promise<Object>} - 用户信息
    */
-  const updateTask = (taskId, updates) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    ));
+  const fetchUserInfo = async () => {
+    // 预留API调用位置
+    // 后续实现：调用真实API获取用户信息
+    // 暂时返回模拟数据
+    return user;
   };
   
   /**
-   * 删除订阅任务
-   * @param {number} taskId - 任务ID
+   * 预留API：获取任务列表
+   * @returns {Promise<Array>} - 任务列表
    */
-  const deleteTask = (taskId) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
+  const fetchTasks = async () => {
+    // 预留API调用位置
+    // 后续实现：调用真实API获取任务列表
+    // 暂时返回模拟数据
+    return tasks;
   };
   
   /**
-   * 切换任务激活状态
-   * @param {number} taskId - 任务ID
+   * 预留API：获取价格预警列表
+   * @returns {Promise<Array>} - 价格预警列表
    */
-  const toggleTaskActive = (taskId) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, isActive: !task.isActive } : task
-    ));
-  };
-  
-  /**
-   * 添加价格预警任务
-   * @param {Object} alert - 预警任务信息
-   */
-  const addPriceAlert = (alert) => {
-    const newAlert = {
-      id: Date.now(),
-      ...alert,
-      isActive: true
-    };
-    setPriceAlerts([newAlert, ...priceAlerts]);
-  };
-  
-  /**
-   * 更新价格预警任务
-   * @param {number} alertId - 预警任务ID
-   * @param {Object} updates - 更新的预警任务信息
-   */
-  const updatePriceAlert = (alertId, updates) => {
-    setPriceAlerts(priceAlerts.map(alert => 
-      alert.id === alertId ? { ...alert, ...updates } : alert
-    ));
-  };
-  
-  /**
-   * 删除价格预警任务
-   * @param {number} alertId - 预警任务ID
-   */
-  const deletePriceAlert = (alertId) => {
-    setPriceAlerts(priceAlerts.filter(alert => alert.id !== alertId));
-  };
-  
-  /**
-   * 切换价格预警任务激活状态
-   * @param {number} alertId - 预警任务ID
-   */
-  const togglePriceAlertActive = (alertId) => {
-    setPriceAlerts(priceAlerts.map(alert => 
-      alert.id === alertId ? { ...alert, isActive: !alert.isActive } : alert
-    ));
+  const fetchPriceAlerts = async () => {
+    // 预留API调用位置
+    // 后续实现：调用真实API获取价格预警列表
+    // 暂时返回模拟数据
+    return priceAlerts;
   };
   
   // 上下文值，包含所有状态和方法
@@ -397,20 +392,21 @@ export const AppProvider = ({ children }) => {
     tasks,
     priceAlerts,
     darkMode,
+    emailAlerts,
+    language,
     login,
     register,
     logout,
     toggleDarkMode,
+    toggleEmailAlerts,
+    updateLanguage,
     addToWatchlist,
     removeFromWatchlist,
-    addTask,
-    updateTask,
-    deleteTask,
-    toggleTaskActive,
-    addPriceAlert,
-    updatePriceAlert,
-    deletePriceAlert,
-    togglePriceAlertActive
+    // 预留API函数
+    fetchMarketData,
+    fetchUserInfo,
+    fetchTasks,
+    fetchPriceAlerts
   };
   
   return (

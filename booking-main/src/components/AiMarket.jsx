@@ -8,6 +8,7 @@ import Navigation from './Navigation';
  */
 const AiMarket = () => {
   // AI行情订阅状态
+  const [isSubscriptionEnabled, setIsSubscriptionEnabled] = useState(true);
   const [prompt, setPrompt] = useState('分析BTC/USDT的4小时K线图，考虑MACD和RSI指标，评估短期趋势并给出多空信号');
   const [frequency, setFrequency] = useState('1h');
   const [symbol, setSymbol] = useState('BTC/USDT');
@@ -68,6 +69,13 @@ const AiMarket = () => {
   const neutralCount = aiSignals.filter(signal => signal.signal === 'neutral').length;
   const bearishCount = aiSignals.filter(signal => signal.signal === 'bearish').length;
 
+  // 处理预警开关切换
+  const handleAlertToggle = (id) => {
+    setPriceAlerts(prev => prev.map(alert => 
+      alert.id === id ? { ...alert, isEnabled: !alert.isEnabled } : alert
+    ));
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen pb-24">
       <Header />
@@ -76,6 +84,15 @@ const AiMarket = () => {
         {/* 页面标题 */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">AI行情订阅</h1>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer"
+              checked={isSubscriptionEnabled}
+              onChange={() => setIsSubscriptionEnabled(!isSubscriptionEnabled)}
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+          </label>
         </div>
 
         <div className="space-y-6">
@@ -204,6 +221,7 @@ const AiMarket = () => {
                             type="checkbox" 
                             className="sr-only peer"
                             checked={alert.isEnabled}
+                            onChange={() => handleAlertToggle(alert.id)}
                           />
                           <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
                         </label>

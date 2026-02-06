@@ -11,42 +11,11 @@ const MainContent = () => {
   // 添加默认值处理，确保即使useApp返回undefined也能正常运行
   const appContext = useApp() || {};
   const { 
-    marketData = [], 
-    watchlist = [], 
-    addToWatchlist = () => {}, 
-    removeFromWatchlist = () => {}
+    marketData = []
   } = appContext;
   
-  // 搜索查询状态
-  const [searchQuery, setSearchQuery] = useState('');
-  // 观察列表编辑状态
-  const [editWatchlist, setEditWatchlist] = useState(false);
   // 选中的菜单状态
   const [selectedMenu, setSelectedMenu] = useState('real-time');
-  
-  /**
-   * 处理搜索输入变化
-   * @param {Object} e - 事件对象
-   */
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-  
-  /**
-   * 过滤市场数据
-   * 根据搜索查询过滤币对
-   */
-  const filteredMarkets = Array.isArray(marketData) ? marketData.filter(item => 
-    item && item.symbol && item.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-  ) : [];
-  
-  /**
-   * 获取涨幅最大的币对
-   * 按涨跌幅排序，取前4个
-   */
-  const topGainers = Array.isArray(marketData) ? [...marketData]
-    .sort((a, b) => (b.change || 0) - (a.change || 0))
-    .slice(0, 4) : [];
   
   /**
    * 处理币对点击
@@ -56,32 +25,6 @@ const MainContent = () => {
   const handleSymbolClick = (symbol) => {
     navigate('/detail', { state: { symbol } });
   };
-  
-  /**
-   * 切换观察列表编辑模式
-   */
-  const toggleEditWatchlist = () => {
-    setEditWatchlist(prev => !prev);
-  };
-  
-  /**
-   * 从观察列表移除币对
-   * @param {Object} e - 事件对象
-   * @param {string} symbolId - 币对ID
-   */
-  const handleRemoveFromWatchlist = (e, symbolId) => {
-    e.stopPropagation();
-    removeFromWatchlist(symbolId);
-  };
-  
-
-  
-  /**
-   * 获取观察列表中的币对数据
-   */
-  const watchlistItems = Array.isArray(marketData) && Array.isArray(watchlist) ? marketData.filter(item => 
-    item && item.id && watchlist.includes(item.id)
-  ) : [];
   
   return (
     <main className="max-w-md mx-auto">

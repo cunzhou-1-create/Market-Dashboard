@@ -1,7 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Navigation from './Navigation';
+import LanguageSelector from './LanguageSelector';
+import { useTranslation } from '../hooks/useTranslation';
+
+/**
+ * API Key输入组件
+ * 可重用的API Key输入框，包含显示/隐藏功能和连接状态指示器
+ */
+const ApiKeyInput = ({ label, value, isConnected, showKey, onToggleShow }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-slate-500 dark:text-[#92adc9] text-xs font-semibold">{label}</label>
+      <div className="relative">
+        <input 
+          className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary pr-12 transition-all duration-200" 
+          type={showKey ? "text" : "password"} 
+          defaultValue={value} 
+        />
+        <div 
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer transition-all duration-200 hover:text-slate-600 dark:hover:text-white hover:scale-110"
+          onClick={onToggleShow}
+        >
+          <span className="material-symbols-outlined text-[20px]">{showKey ? "visibility_off" : "visibility"}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 mt-1">
+            <div className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+            <span className={`text-[10px] ${isConnected ? 'text-emerald-500' : 'text-slate-400'} font-bold uppercase tracking-tight`}>
+              {isConnected ? t('connected') : t('disconnected')}
+            </span>
+          </div>
+    </div>
+  );
+};
 
 /**
  * 设置组件
@@ -9,7 +43,18 @@ import Navigation from './Navigation';
  */
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, darkMode, toggleDarkMode, logout } = useApp();
+  const { user, darkMode, toggleDarkMode, logout, emailAlerts, toggleEmailAlerts, language } = useApp();
+  const { t } = useTranslation();
+  
+  // API Key显示模式状态管理
+  const [showQwenApiKey, setShowQwenApiKey] = useState(false);
+  // 其他接口展开状态管理
+  const [showOtherApis, setShowOtherApis] = useState(false);
+  // 其他LLM接口显示模式状态管理
+  const [showOpenAiApiKey, setShowOpenAiApiKey] = useState(false);
+  const [showAnthropicApiKey, setShowAnthropicApiKey] = useState(false);
+  // 语言选择器模态框状态
+  const [isLanguageSelectorOpen, setIsLanguageSelectorOpen] = useState(false);
 
   /**
    * 处理退出登录
@@ -30,7 +75,7 @@ const Settings = () => {
         >
           <span className="material-symbols-outlined">arrow_back_ios</span>
         </div>
-        <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Account Settings</h2>
+        <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">{t('accountSettings')}</h2>
       </div>
       
       <div className="flex flex-col gap-2 pb-24">
@@ -49,14 +94,14 @@ const Settings = () => {
               <div className="flex flex-col justify-center">
                 <p className="text-slate-900 dark:text-white text-[20px] font-bold leading-tight">{user?.name}</p>
                 <p className="text-primary text-sm font-semibold leading-normal">{user?.role} • {user?.tier}</p>
-                <p className="text-slate-500 dark:text-[#92adc9] text-xs font-normal leading-normal">Active since {user?.joinedAt}</p>
+                <p className="text-slate-500 dark:text-[#92adc9] text-xs font-normal leading-normal">{t('activeSince')} {user?.joinedAt}</p>
               </div>
             </div>
           </div>
         </div>
         
         {/* Section: Account Management */}
-        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-4">Account Management</h3>
+        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-4">{t('accountManagement')}</h3>
         <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
           {/* ListItem: Switch Account */}
           <div className="flex items-center gap-4 px-4 min-h-[72px] py-2 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
@@ -70,8 +115,8 @@ const Settings = () => {
               >
               </div>
               <div className="flex flex-col justify-center">
-                <p className="text-slate-900 dark:text-white text-base font-medium leading-normal line-clamp-1">Switch Account</p>
-                <p className="text-slate-500 dark:text-[#92adc9] text-xs font-normal leading-normal line-clamp-2">Active: Main Binance Account</p>
+                <p className="text-slate-900 dark:text-white text-base font-medium leading-normal line-clamp-1">{t('switchAccount')}</p>
+                <p className="text-slate-500 dark:text-[#92adc9] text-xs font-normal leading-normal line-clamp-2">{t('activeMainAccount')}</p>
               </div>
             </div>
             <div className="shrink-0 transition-transform duration-200 hover:translate-x-1">
@@ -85,7 +130,7 @@ const Settings = () => {
               <div className="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
                 <span className="material-symbols-outlined">person_add</span>
               </div>
-              <p className="text-slate-900 dark:text-white text-base font-normal leading-normal flex-1 truncate">Add New Account</p>
+              <p className="text-slate-900 dark:text-white text-base font-normal leading-normal flex-1 truncate">{t('addNewAccount')}</p>
             </div>
             <div className="shrink-0 transition-transform duration-200 hover:scale-110">
               <span className="material-symbols-outlined text-slate-400">add</span>
@@ -94,50 +139,79 @@ const Settings = () => {
         </div>
         
         {/* Section: AI & Integrations */}
-        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">AI &amp; Integrations</h3>
+        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">{t('aiIntegrations')}</h3>
         <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden p-4 flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-500 dark:text-[#92adc9] text-xs font-semibold">Qwen LLM API Key</label>
-            <div className="relative">
-              <input 
-                className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary pr-12 transition-all duration-200" 
-                type="password" 
-                defaultValue="sk-qwen-78x9234892347239487" 
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer transition-all duration-200 hover:text-slate-600 dark:hover:text-white hover:scale-110">
-                <span className="material-symbols-outlined text-[20px]">visibility</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className="size-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-tight">Connected</span>
-            </div>
+          <ApiKeyInput 
+            label={t('qwenApiKey')}
+            value="sk-qwen-78x9234892347239487"
+            isConnected={true}
+            showKey={showQwenApiKey}
+            onToggleShow={() => setShowQwenApiKey(!showQwenApiKey)}
+          />
+          
+          {/* 添加其他接口按钮 */}
+          <div 
+            className="flex items-center justify-between mt-2 py-2 px-1 cursor-pointer transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg"
+            onClick={() => setShowOtherApis(!showOtherApis)}
+          >
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('addOtherApis')}</span>
+            <span className="material-symbols-outlined text-slate-400 transition-all duration-200 transform">
+              {showOtherApis ? "expand_less" : "expand_more"}
+            </span>
           </div>
+          
+          {/* 其他LLM接口输入框 */}
+          {showOtherApis && (
+            <div className="flex flex-col gap-4 pt-2 border-t border-slate-200 dark:border-slate-800 animate-fade-in">
+              {/* OpenAI API Key */}
+              <ApiKeyInput 
+                label={t('openaiApiKey')}
+                value="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                isConnected={false}
+                showKey={showOpenAiApiKey}
+                onToggleShow={() => setShowOpenAiApiKey(!showOpenAiApiKey)}
+              />
+              
+              {/* Anthropic API Key */}
+              <ApiKeyInput 
+                label={t('anthropicApiKey')}
+                value="sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                isConnected={false}
+                showKey={showAnthropicApiKey}
+                onToggleShow={() => setShowAnthropicApiKey(!showAnthropicApiKey)}
+              />
+            </div>
+          )}
         </div>
         
         {/* Section: Notifications */}
-        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">Notifications</h3>
+        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">{t('notifications')}</h3>
         <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden p-4 flex flex-col gap-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex flex-col">
-              <p className="text-slate-900 dark:text-white text-base font-medium">Email Alerts</p>
-              <p className="text-slate-500 dark:text-[#92adc9] text-xs">Market signals &amp; trade updates</p>
+              <p className="text-slate-900 dark:text-white text-base font-medium">{t('emailAlerts')}</p>
+              <p className="text-slate-500 dark:text-[#92adc9] text-xs">{t('marketSignals')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer transition-transform duration-200 hover:scale-105">
-              <input checked className="sr-only peer" type="checkbox" />
+              <input 
+                checked={emailAlerts} 
+                onChange={toggleEmailAlerts}
+                className="sr-only peer" 
+                type="checkbox" 
+              />
               <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all duration-300 peer-checked:bg-primary"></div>
             </label>
           </div>
           <input 
             className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary transition-all duration-200" 
-            placeholder="alex.t@trading.com" 
+            placeholder={t('email')} 
             type="email" 
             defaultValue={user?.email}
           />
         </div>
         
         {/* Section: Preferences */}
-        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">Preferences</h3>
+        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">{t('preferences')}</h3>
         <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
           {/* Theme Selection */}
           <div className="flex items-center gap-4 px-4 min-h-14 justify-between">
@@ -145,41 +219,44 @@ const Settings = () => {
               <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
                 <span className="material-symbols-outlined">dark_mode</span>
               </div>
-              <p className="text-slate-900 dark:text-white text-base font-normal">Theme</p>
+              <p className="text-slate-900 dark:text-white text-base font-normal">{t('theme')}</p>
             </div>
             <div className="flex bg-slate-100 dark:bg-background-dark p-1 rounded-lg">
               <button 
                 className={`px-3 py-1 text-xs font-bold rounded-md ${darkMode ? 'bg-white dark:bg-slate-800 shadow-sm text-primary' : 'text-slate-500 dark:text-[#92adc9]'} transition-all duration-200 hover:opacity-90`}
                 onClick={toggleDarkMode}
               >
-                Dark
+                {t('dark')}
               </button>
               <button 
                 className={`px-3 py-1 text-xs font-bold rounded-md ${!darkMode ? 'bg-white dark:bg-slate-800 shadow-sm text-primary' : 'text-slate-500 dark:text-[#92adc9]'} transition-all duration-200 hover:opacity-90`}
                 onClick={toggleDarkMode}
               >
-                Light
+                {t('light')}
               </button>
             </div>
           </div>
           
           {/* Language */}
-          <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
+          <div 
+            className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200"
+            onClick={() => setIsLanguageSelectorOpen(true)}
+          >
             <div className="flex items-center gap-4">
               <div className="text-slate-500 dark:text-white flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 size-10 transition-transform duration-200 hover:scale-105">
                 <span className="material-symbols-outlined">language</span>
               </div>
-              <p className="text-slate-900 dark:text-white text-base font-normal">Language</p>
+              <p className="text-slate-900 dark:text-white text-base font-normal">{t('language')}</p>
             </div>
             <div className="flex items-center gap-2 transition-transform duration-200 hover:translate-x-1">
-              <span className="text-sm text-slate-500 dark:text-[#92adc9]">English</span>
+              <span className="text-sm text-slate-500 dark:text-[#92adc9]">{language === 'en' ? t('english') : t('chinese')}</span>
               <span className="material-symbols-outlined text-slate-400">chevron_right</span>
             </div>
           </div>
         </div>
         
         {/* Section: Subscription Management */}
-        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">Subscription Management</h3>
+        <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider px-4 pb-2 pt-6">{t('subscriptionManagement')}</h3>
         <div className="bg-white dark:bg-[#1c2630] mx-4 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
           {/* Free Trial */}
           <div className="flex items-center gap-4 px-4 min-h-14 justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all duration-200">
@@ -188,12 +265,12 @@ const Settings = () => {
                 <span className="material-symbols-outlined">event_available</span>
               </div>
               <div className="flex flex-col justify-center">
-                <p className="text-slate-900 dark:text-white text-base font-medium">免费试用</p>
-                <p className="text-emerald-500 text-xs">3天全功能体验</p>
+                <p className="text-slate-900 dark:text-white text-base font-medium">{t('freeTrial')}</p>
+                <p className="text-emerald-500 text-xs">{t('threeDayTrial')}</p>
               </div>
             </div>
             <div className="shrink-0">
-              <button className="bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-emerald-600 hover:scale-105 hover:shadow-lg">立即试用</button>
+              <button className="bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-emerald-600 hover:scale-105 hover:shadow-lg">{t('startTrial')}</button>
             </div>
           </div>
           
@@ -204,8 +281,8 @@ const Settings = () => {
                 <span className="material-symbols-outlined">analytics</span>
               </div>
               <div className="flex flex-col justify-center">
-                <p className="text-slate-900 dark:text-white text-base font-medium">月付订阅</p>
-                <p className="text-slate-500 dark:text-[#92adc9] text-xs">USDT-ERC20/TRC20 支付</p>
+                <p className="text-slate-900 dark:text-white text-base font-medium">{t('monthlySubscription')}</p>
+                <p className="text-slate-500 dark:text-[#92adc9] text-xs">{t('paymentMethod')}</p>
               </div>
             </div>
             <div className="shrink-0 transition-transform duration-200 hover:translate-x-1">
@@ -220,8 +297,8 @@ const Settings = () => {
                 <span className="material-symbols-outlined">receipt_long</span>
               </div>
               <div className="flex flex-col justify-center">
-                <p className="text-slate-900 dark:text-white text-base font-medium">订阅状态</p>
-                <p className="text-slate-500 dark:text-[#92adc9] text-xs">未订阅 • 可免费试用</p>
+                <p className="text-slate-900 dark:text-white text-base font-medium">{t('subscriptionManagement')}</p>
+                <p className="text-slate-500 dark:text-[#92adc9] text-xs">未订阅 • {t('freeTrial')}</p>
               </div>
             </div>
             <div className="shrink-0 transition-transform duration-200 hover:translate-x-1">
@@ -236,19 +313,25 @@ const Settings = () => {
                className="w-full py-4 bg-white dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 font-bold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 hover:shadow-md"
                onClick={handleSignOut}
              >
-               Sign Out
+               {t('signOut')}
              </button>
            </div>
         
         {/* Footer Info */}
         <div className="mt-8 flex flex-col items-center gap-1 opacity-50">
-          <p className="text-[10px] text-slate-500 dark:text-[#92adc9] uppercase tracking-[0.2em] font-bold">Qwen AI Market Hub</p>
-          <p className="text-[10px] text-slate-500 dark:text-[#92adc9]">Version 2.4.1 (Stable Build)</p>
+          <p className="text-[10px] text-slate-500 dark:text-[#92adc9] uppercase tracking-[0.2em] font-bold">{t('qwenAiMarketHub')}</p>
+          <p className="text-[10px] text-slate-500 dark:text-[#92adc9]">{t('version')}</p>
         </div>
       </div>
       
       {/* Navigation Bar */}
       <Navigation />
+      
+      {/* Language Selector Modal */}
+      <LanguageSelector 
+        isOpen={isLanguageSelectorOpen}
+        onClose={() => setIsLanguageSelectorOpen(false)}
+      />
     </div>
   );
 };

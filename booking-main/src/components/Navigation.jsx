@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
  */
 const Navigation = () => {
   const navigate = useNavigate();
-  const [aiTradeMenuOpen, setAiTradeMenuOpen] = useState(false);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-6 pb-6 pt-3 flex justify-between items-center z-50">

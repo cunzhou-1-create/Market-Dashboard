@@ -9,7 +9,6 @@ import Task from './components/Task';
 import Auth from './components/Auth';
 import Trade from './components/Trade';
 import AiMarket from './components/AiMarket';
-import VerificationTestPage from './components/VerificationTestPage';
 
 function App() {
   return (
@@ -58,12 +57,6 @@ function App() {
         <Route 
           path="/ai-market" 
           element={<AiMarket />} 
-        />
-        
-        {/* 验证码测试页面路由 - 直接访问，不需要登录 */}
-        <Route 
-          path="/verification-test" 
-          element={<VerificationTestPage />} 
         />
       </Routes>
     </Router>
