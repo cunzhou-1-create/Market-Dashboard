@@ -82,4 +82,11 @@ export const zh = {
   technicalAlertStatus: '技术指标预警状态',
   enabled: '已启用',
   triggered: '已触发',
+  
+  // Navigation
+  market: '市场',
+  aiMarket: 'AI行情',
+  trade: '交易',
+  task: '任务',
+  settings: '设置',
 };

@@ -29,7 +29,8 @@ const Trade = () => {
       profit: '+24.5%',
       trades: 128,
       status: 'active',
-      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20male%20business%20style&image_size=square'
+      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20male%20business%20style&image_size=square',
+      chartData: [100, 105, 110, 108, 115, 120, 124.5]
     },
     {
       id: 2,
@@ -38,7 +39,8 @@ const Trade = () => {
       profit: '+18.2%',
       trades: 96,
       status: 'active',
-      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20female%20business%20style&image_size=square'
+      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20female%20business%20style&image_size=square',
+      chartData: [100, 102, 105, 103, 108, 115, 118.2]
     },
     {
       id: 3,
@@ -47,7 +49,8 @@ const Trade = () => {
       profit: '+31.7%',
       trades: 256,
       status: 'active',
-      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20male%20tech%20style&image_size=square'
+      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20male%20tech%20style&image_size=square',
+      chartData: [100, 108, 115, 120, 125, 128, 131.7]
     },
     {
       id: 4,
@@ -56,7 +59,8 @@ const Trade = () => {
       profit: '+12.8%',
       trades: 64,
       status: 'active',
-      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20female%20tech%20style&image_size=square'
+      avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20female%20tech%20style&image_size=square',
+      chartData: [100, 101, 103, 105, 108, 110, 112.8]
     }
   ];
 
@@ -110,7 +114,8 @@ const Trade = () => {
         status: 'completed'
       }
     ],
-    balance: '10,000.00'
+    balance: '10,000.00',
+    chartData: [10000, 9800, 10200, 10500, 10300, 10800, 11000]
   });
 
   // 用户创建模拟交易表单状态
@@ -120,6 +125,50 @@ const Trade = () => {
     amount: '',
     price: ''
   });
+
+  // 时间范围选择状态
+  const [timeRange, setTimeRange] = useState('7d'); // 7d, 30d, 90d, 1y
+
+  // 图表组件
+  const Chart = ({ data }) => {
+    const maxValue = Math.max(...data);
+    const minValue = Math.min(...data);
+    const range = maxValue - minValue;
+    const width = '100%';
+    const height = 80;
+    const padding = 5;
+
+    return (
+      <div className="w-full">
+        <svg width={width} height={height} className="mt-2">
+          <defs>
+            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(34, 197, 94, 0.3)" />
+              <stop offset="100%" stopColor="rgba(34, 197, 94, 0.05)" />
+            </linearGradient>
+          </defs>
+          <path
+            d={data.map((value, index) => {
+              const x = padding + (index / (data.length - 1)) * (window.innerWidth > 768 ? 200 : window.innerWidth - 40);
+              const y = padding + (height - 2 * padding) - ((value - minValue) / range) * (height - 2 * padding);
+              return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+            }).join(' ')}
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth={2}
+          />
+          <path
+            d={`${data.map((value, index) => {
+              const x = padding + (index / (data.length - 1)) * (window.innerWidth > 768 ? 200 : window.innerWidth - 40);
+              const y = padding + (height - 2 * padding) - ((value - minValue) / range) * (height - 2 * padding);
+              return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+            }).join(' ')} L ${window.innerWidth > 768 ? 200 - padding : window.innerWidth - 40 - padding} ${height - padding} L ${padding} ${height - padding} Z`}
+            fill="url(#chartGradient)"
+          />
+        </svg>
+      </div>
+    );
+  };
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen pb-24">
@@ -150,36 +199,46 @@ const Trade = () => {
         {/* AI交易员列表 */}
         {activeTab === 'aiTraders' && (
           <div className="space-y-4">
-            {aiTraders.map((trader) => (
-              <div key={trader.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
-                <div className="flex items-center gap-4">
-                  <img 
-                    src={trader.avatar} 
-                    alt={trader.name} 
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-bold text-lg">{trader.name}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trader.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
-                        {trader.status === 'active' ? '运行中' : '已停止'}
-                      </span>
-                    </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">策略: {trader.strategy}</p>
-                    <div className="flex gap-4 mt-2">
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">收益率</p>
-                        <p className="font-bold text-green-600 dark:text-green-400">{trader.profit}</p>
+            {aiTraders.length > 0 ? (
+              aiTraders.map((trader) => (
+                <div key={trader.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                    <img 
+                      src={trader.avatar} 
+                      alt={trader.name} 
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1 w-full">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                        <h3 className="font-bold text-lg">{trader.name}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trader.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
+                          {trader.status === 'active' ? '运行中' : '已停止'}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">交易次数</p>
-                        <p className="font-bold">{trader.trades}</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">策略: {trader.strategy}</p>
+                      <div className="flex flex-wrap gap-4 mt-2">
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">收益率</p>
+                          <p className="font-bold text-green-600 dark:text-green-400">{trader.profit}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">交易次数</p>
+                          <p className="font-bold">{trader.trades}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">账户走势</p>
+                        <Chart data={trader.chartData} />
                       </div>
                     </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
+                <p className="text-slate-500 dark:text-slate-400">暂无AI交易员数据</p>
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -192,6 +251,39 @@ const Trade = () => {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 px-4 py-3">
                 <p className="text-slate-500 dark:text-slate-400 text-sm">可用余额</p>
                 <p className="font-bold text-lg">{simulationData.balance} USDT</p>
+              </div>
+            </div>
+
+            {/* 账户走势图表 */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold">账户走势</h3>
+                <div className="flex gap-2">
+                  {['7d', '30d', '90d', '1y'].map((range) => (
+                    <button
+                      key={range}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${timeRange === range ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                      onClick={() => setTimeRange(range)}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="flex-1 w-full">
+                  <Chart data={simulationData.chartData} />
+                </div>
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">总收益</p>
+                    <p className="font-bold text-green-600 dark:text-green-400">+10.0%</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">当前余额</p>
+                    <p className="font-bold">{simulationData.balance} USDT</p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -286,38 +378,46 @@ const Trade = () => {
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
               <h3 className="font-semibold mb-4">交易历史</h3>
               <div className="space-y-4">
-                {simulationData.userTrades.map((trade, index) => (
-                  <div key={trade.id} className={`${index < simulationData.userTrades.length - 1 ? 'border-b border-slate-200 dark:border-slate-700 pb-4' : ''}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-bold">{trade.symbol}</h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trade.type === 'buy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
-                          {trade.type === 'buy' ? '买入' : '卖出'}
-                        </span>
+                {simulationData.userTrades.length > 0 ? (
+                  simulationData.userTrades.map((trade, index) => (
+                    <div key={trade.id} className={`${index < simulationData.userTrades.length - 1 ? 'border-b border-slate-200 dark:border-slate-700 pb-4' : ''} p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors`}>
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-bold">{trade.symbol}</h4>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trade.type === 'buy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            {trade.type === 'buy' ? '买入' : '卖出'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trade.status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
+                            {trade.status === 'completed' ? '已完成' : '处理中'}
+                          </span>
+                          <p className="text-slate-400 dark:text-slate-500 text-xs">
+                            {trade.timestamp}
+                          </p>
+                        </div>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trade.status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
-                        {trade.status === 'completed' ? '已完成' : '处理中'}
-                      </span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">交易价格</p>
+                          <p className="font-bold">{trade.price} USDT</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">交易数量</p>
+                          <p className="font-bold">{trade.amount}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">交易总额</p>
+                          <p className="font-bold">{trade.total} USDT</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mt-2">
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">交易价格</p>
-                        <p className="font-bold">{trade.price} USDT</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">交易数量</p>
-                        <p className="font-bold">{trade.amount}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">交易总额</p>
-                        <p className="font-bold">{trade.total} USDT</p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-slate-400 dark:text-slate-500 text-xs">
-                      交易时间: {trade.timestamp}
-                    </p>
+                  ))
+                ) : (
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
+                    <p className="text-slate-500 dark:text-slate-400">暂无交易记录</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

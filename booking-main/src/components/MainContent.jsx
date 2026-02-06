@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useMarket } from '../context/MarketContext';
 
 /**
  * 主内容组件
@@ -8,14 +8,15 @@ import { useApp } from '../context/AppContext';
  */
 const MainContent = () => {
   const navigate = useNavigate();
-  // 添加默认值处理，确保即使useApp返回undefined也能正常运行
-  const appContext = useApp() || {};
-  const { 
-    marketData = []
-  } = appContext;
+  const { marketData } = useMarket();
   
   // 选中的菜单状态
   const [selectedMenu, setSelectedMenu] = useState('real-time');
+  
+  // 缓存市场数据计算结果
+  const btcData = useMemo(() => marketData.find(item => item.symbol === 'BTC/USDT'), [marketData]);
+  const ethData = useMemo(() => marketData.find(item => item.symbol === 'ETH/USDT'), [marketData]);
+  const altcoinsData = useMemo(() => marketData.filter(item => item.symbol !== 'BTC/USDT' && item.symbol !== 'ETH/USDT'), [marketData]);
   
   /**
    * 处理币对点击
@@ -69,7 +70,7 @@ const MainContent = () => {
             {/* BTC & ETH Section */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               {/* BTC Card */}
-              {marketData.find(item => item.symbol === 'BTC/USDT') && (
+              {btcData && (
                 <div className="bg-slate-100 dark:bg-[#1c2630] rounded-xl p-4 border border-transparent dark:border-slate-800">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
@@ -78,12 +79,12 @@ const MainContent = () => {
                       </div>
                       <span className="font-bold text-sm">Bitcoin</span>
                     </div>
-                    <span className={`text-xs font-bold ${marketData.find(item => item.symbol === 'BTC/USDT').isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {marketData.find(item => item.symbol === 'BTC/USDT').isPositive ? '+' : ''}{marketData.find(item => item.symbol === 'BTC/USDT').change}%
+                    <span className={`text-xs font-bold ${btcData.isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {btcData.isPositive ? '+' : ''}{btcData.change}%
                     </span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black">${marketData.find(item => item.symbol === 'BTC/USDT').price.toLocaleString()}</span>
+                    <span className="text-2xl font-black">${btcData.price.toLocaleString()}</span>
                     <span className="text-xs text-slate-500">USDT</span>
                   </div>
                   <div className="mt-2 text-xs text-slate-500">24h 涨跌幅</div>
@@ -91,7 +92,7 @@ const MainContent = () => {
               )}
               
               {/* ETH Card */}
-              {marketData.find(item => item.symbol === 'ETH/USDT') && (
+              {ethData && (
                 <div className="bg-slate-100 dark:bg-[#1c2630] rounded-xl p-4 border border-transparent dark:border-slate-800">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
@@ -100,12 +101,12 @@ const MainContent = () => {
                       </div>
                       <span className="font-bold text-sm">Ethereum</span>
                     </div>
-                    <span className={`text-xs font-bold ${marketData.find(item => item.symbol === 'ETH/USDT').isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {marketData.find(item => item.symbol === 'ETH/USDT').isPositive ? '+' : ''}{marketData.find(item => item.symbol === 'ETH/USDT').change}%
+                    <span className={`text-xs font-bold ${ethData.isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {ethData.isPositive ? '+' : ''}{ethData.change}%
                     </span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black">${marketData.find(item => item.symbol === 'ETH/USDT').price.toLocaleString()}</span>
+                    <span className="text-2xl font-black">${ethData.price.toLocaleString()}</span>
                     <span className="text-xs text-slate-500">USDT</span>
                   </div>
                   <div className="mt-2 text-xs text-slate-500">24h 涨跌幅</div>
@@ -126,10 +127,10 @@ const MainContent = () => {
               
               {/* Table Rows */}
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                {marketData.filter(item => item.symbol !== 'BTC/USDT' && item.symbol !== 'ETH/USDT').map((item, index) => (
+                {altcoinsData.map((item, index) => (
                   <div 
                     key={item.id} 
-                    className={`flex justify-between items-center py-2 ${index < marketData.filter(item => item.symbol !== 'BTC/USDT' && item.symbol !== 'ETH/USDT').length - 1 ? 'border-b border-slate-200 dark:border-slate-800' : ''}`}
+                    className={`flex justify-between items-center py-2 ${index < altcoinsData.length - 1 ? 'border-b border-slate-200 dark:border-slate-800' : ''}`}
                   >
                     <div className="w-1/3 flex items-center gap-2">
                       <div className="size-6 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center">
@@ -152,29 +153,70 @@ const MainContent = () => {
             </div>
           </div>
           
-          {/* Volume Chart Preview */}
+          {/* 24小时涨跌幅图表 */}
           <div className="px-4 py-4">
-            <h3 className="text-lg font-bold tracking-tight pb-4">Market Volume (24h)</h3>
+            <h3 className="text-lg font-bold tracking-tight pb-4">24小时涨跌幅</h3>
             <div className="w-full bg-slate-100 dark:bg-[#1c2630] rounded-xl p-4">
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-2xl font-black">$42.8B</span>
-                <span className="text-xs text-slate-500 font-medium">Total Volume</span>
+                <span className="text-2xl font-black">+2.4%</span>
+                <span className="text-xs text-slate-500 font-medium">24h 总涨跌幅</span>
               </div>
-              <div className="flex items-end gap-1.5 h-24">
-                <div className="flex-1 bg-primary/20 rounded-t h-[40%]"></div>
-                <div className="flex-1 bg-primary/40 rounded-t h-[60%]"></div>
-                <div className="flex-1 bg-primary/60 rounded-t h-[80%]"></div>
-                <div className="flex-1 bg-primary rounded-t h-[100%]"></div>
-                <div className="flex-1 bg-primary/80 rounded-t h-[70%]"></div>
-                <div className="flex-1 bg-primary/50 rounded-t h-[45%]"></div>
-                <div className="flex-1 bg-primary/30 rounded-t h-[30%]"></div>
-                <div className="flex-1 bg-primary/40 rounded-t h-[55%]"></div>
-                <div className="flex-1 bg-primary/70 rounded-t h-[85%]"></div>
-                <div className="flex-1 bg-primary/90 rounded-t h-[95%]"></div>
+              {/* 24小时涨跌幅数据模拟 */}
+              <div className="flex items-end gap-1 h-24">
+                {/* 00:00 */}
+                <div className="flex-1 bg-emerald-500/30 rounded-t h-[30%]"></div>
+                {/* 01:00 */}
+                <div className="flex-1 bg-emerald-500/50 rounded-t h-[50%]"></div>
+                {/* 02:00 */}
+                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
+                {/* 03:00 */}
+                <div className="flex-1 bg-rose-500/40 rounded-t h-[40%]"></div>
+                {/* 04:00 */}
+                <div className="flex-1 bg-rose-500/60 rounded-t h-[60%]"></div>
+                {/* 05:00 */}
+                <div className="flex-1 bg-rose-500/30 rounded-t h-[30%]"></div>
+                {/* 06:00 */}
+                <div className="flex-1 bg-emerald-500/20 rounded-t h-[20%]"></div>
+                {/* 07:00 */}
+                <div className="flex-1 bg-emerald-500/40 rounded-t h-[40%]"></div>
+                {/* 08:00 */}
+                <div className="flex-1 bg-emerald-500/60 rounded-t h-[60%]"></div>
+                {/* 09:00 */}
+                <div className="flex-1 bg-emerald-500/80 rounded-t h-[80%]"></div>
+                {/* 10:00 */}
+                <div className="flex-1 bg-emerald-500 rounded-t h-[100%]"></div>
+                {/* 11:00 */}
+                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
+                {/* 12:00 */}
+                <div className="flex-1 bg-rose-500/20 rounded-t h-[20%]"></div>
+                {/* 13:00 */}
+                <div className="flex-1 bg-rose-500/40 rounded-t h-[40%]"></div>
+                {/* 14:00 */}
+                <div className="flex-1 bg-rose-500/60 rounded-t h-[60%]"></div>
+                {/* 15:00 */}
+                <div className="flex-1 bg-rose-500/30 rounded-t h-[30%]"></div>
+                {/* 16:00 */}
+                <div className="flex-1 bg-emerald-500/50 rounded-t h-[50%]"></div>
+                {/* 17:00 */}
+                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
+                {/* 18:00 */}
+                <div className="flex-1 bg-emerald-500/40 rounded-t h-[40%]"></div>
+                {/* 19:00 */}
+                <div className="flex-1 bg-rose-500/20 rounded-t h-[20%]"></div>
+                {/* 20:00 */}
+                <div className="flex-1 bg-emerald-500/30 rounded-t h-[30%]"></div>
+                {/* 21:00 */}
+                <div className="flex-1 bg-emerald-500/50 rounded-t h-[50%]"></div>
+                {/* 22:00 */}
+                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
+                {/* 23:00 */}
+                <div className="flex-1 bg-emerald-500/90 rounded-t h-[90%]"></div>
               </div>
               <div className="flex justify-between mt-2">
                 <span className="text-[10px] text-slate-500 font-bold">00:00</span>
+                <span className="text-[10px] text-slate-500 font-bold">06:00</span>
                 <span className="text-[10px] text-slate-500 font-bold">12:00</span>
+                <span className="text-[10px] text-slate-500 font-bold">18:00</span>
                 <span className="text-[10px] text-slate-500 font-bold">23:59</span>
               </div>
             </div>

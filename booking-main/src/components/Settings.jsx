@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
+import { useSettings } from '../context/SettingsContext';
 import Navigation from './Navigation';
 import LanguageSelector from './LanguageSelector';
+import CommonHeader from './CommonHeader';
 import { useTranslation } from '../hooks/useTranslation';
 
 /**
@@ -43,7 +45,8 @@ const ApiKeyInput = ({ label, value, isConnected, showKey, onToggleShow }) => {
  */
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, darkMode, toggleDarkMode, logout, emailAlerts, toggleEmailAlerts, language } = useApp();
+  const { user, logout, updateEmail } = useUser();
+  const { darkMode, toggleDarkMode, emailAlerts, toggleEmailAlerts, language } = useSettings();
   const { t } = useTranslation();
   
   // API Key显示模式状态管理
@@ -53,8 +56,10 @@ const Settings = () => {
   // 其他LLM接口显示模式状态管理
   const [showOpenAiApiKey, setShowOpenAiApiKey] = useState(false);
   const [showAnthropicApiKey, setShowAnthropicApiKey] = useState(false);
-  // 语言选择器模态框状态
+  // 语言选择器模态框状态管理
   const [isLanguageSelectorOpen, setIsLanguageSelectorOpen] = useState(false);
+  // 邮箱状态管理
+  const [email, setEmail] = useState(user?.email || '');
 
   /**
    * 处理退出登录
@@ -68,15 +73,7 @@ const Settings = () => {
   return (
     <div className="relative flex min-h-screen w-full flex-col max-w-[480px] mx-auto bg-background-light dark:bg-background-dark text-slate-900 dark:text-white shadow-2xl">
       {/* TopAppBar */}
-      <div className="sticky top-0 z-50 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between border-b border-slate-200 dark:border-slate-800">
-        <div 
-          className="text-primary flex size-10 shrink-0 items-center justify-center cursor-pointer"
-          onClick={() => navigate(-1)}
-        >
-          <span className="material-symbols-outlined">arrow_back_ios</span>
-        </div>
-        <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">{t('accountSettings')}</h2>
-      </div>
+      <CommonHeader title={t('accountSettings')} showBackButton={true} />
       
       <div className="flex flex-col gap-2 pb-24">
         {/* ProfileHeader */}
@@ -190,7 +187,7 @@ const Settings = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex flex-col">
               <p className="text-slate-900 dark:text-white text-base font-medium">{t('emailAlerts')}</p>
-              <p className="text-slate-500 dark:text-[#92adc9] text-xs">{t('marketSignals')}</p>
+              <p className="text-slate-500 dark:text-[#92adc9] text-xs">接收价格预警邮件</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer transition-transform duration-200 hover:scale-105">
               <input 
@@ -206,8 +203,36 @@ const Settings = () => {
             className="w-full bg-slate-50 dark:bg-background-dark border-none rounded-lg text-slate-900 dark:text-white text-sm py-3 px-4 focus:ring-2 focus:ring-primary transition-all duration-200" 
             placeholder={t('email')} 
             type="email" 
-            defaultValue={user?.email}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              updateEmail(e.target.value);
+            }}
           />
+          {emailAlerts && (
+            <div className="flex flex-col gap-2 pt-2">
+              <span className="text-xs text-slate-500 dark:text-[#92adc9]">通知类型</span>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-background-dark p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    className="rounded" 
+                    checked={true}
+                    readOnly
+                  />
+                  <span className="text-sm">价格预警</span>
+                </div>
+                <div className="ml-auto text-xs text-slate-400">
+                  默认开启
+                </div>
+              </div>
+              <div className="text-right">
+                <button className="text-sm text-primary hover:underline">
+                  高级设置
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Section: Preferences */}

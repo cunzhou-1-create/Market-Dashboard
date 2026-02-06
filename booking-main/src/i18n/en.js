@@ -82,4 +82,11 @@ export const en = {
   technicalAlertStatus: 'Technical Indicator Alert Status',
   enabled: 'Enabled',
   triggered: 'Triggered',
+  
+  // Navigation
+  market: 'Market',
+  aiMarket: 'AI Market',
+  trade: 'Trade',
+  task: 'Task',
+  settings: 'Settings',
 };

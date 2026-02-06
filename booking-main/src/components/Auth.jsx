@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
 
 const Auth = () => {
@@ -12,7 +12,7 @@ const Auth = () => {
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   
-  const { login, register, isLoading, error, user } = useApp();
+  const { login, register, isLoading, error, user } = useUser();
   const navigate = useNavigate();
   
   // 如果用户已登录，重定向到首页

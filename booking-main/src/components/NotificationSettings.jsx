@@ -10,25 +10,28 @@ const NotificationSettings = () => {
   // 邮件通知类型状态
   const [emailNotificationTypes, setEmailNotificationTypes] = useState({
     priceAlert: true,
-    technicalAlert: true,
-    onChainEvent: true,
-    aiReport: true
+    technicalAlert: false,
+    onChainEvent: false,
+    aiReport: false
   });
+  
+  // 高级设置状态
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   
   // Telegram通知类型状态
   const [telegramNotificationTypes, setTelegramNotificationTypes] = useState({
     priceAlert: true,
-    technicalAlert: true,
-    onChainEvent: true,
-    aiReport: true
+    technicalAlert: false,
+    onChainEvent: false,
+    aiReport: false
   });
   
   // Webhook通知类型状态
   const [webhookNotificationTypes, setWebhookNotificationTypes] = useState({
     priceAlert: true,
-    technicalAlert: true,
-    onChainEvent: true,
-    aiReport: true
+    technicalAlert: false,
+    onChainEvent: false,
+    aiReport: false
   });
   
   // Webhook通知格式状态
@@ -101,7 +104,7 @@ const NotificationSettings = () => {
                 </div>
                 <div>
                   <p className="font-bold text-sm">邮件通知</p>
-                  <p className="text-xs text-slate-500">接收价格预警和行情分析邮件</p>
+                  <p className="text-xs text-slate-500">接收价格预警邮件</p>
                 </div>
               </div>
             </div>
@@ -109,14 +112,6 @@ const NotificationSettings = () => {
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-slate-500">邮箱地址</span>
                 <input type="email" className="flex-1 bg-slate-200 dark:bg-slate-700 border-0 rounded-lg px-3 py-2 text-sm" placeholder="请输入您的邮箱地址" defaultValue="user@example.com" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-xs text-slate-500">通知频率</span>
-                <select className="flex-1 bg-slate-200 dark:bg-slate-700 border-0 rounded-lg px-3 py-2 text-sm">
-                  <option>实时通知</option>
-                  <option>每小时汇总</option>
-                  <option>每天汇总</option>
-                </select>
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-slate-500">通知类型</span>
@@ -130,35 +125,64 @@ const NotificationSettings = () => {
                     />
                     价格预警
                   </label>
-                  <label className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">
-                    <input 
-                      type="checkbox" 
-                      className="rounded" 
-                      checked={emailNotificationTypes.technicalAlert}
-                      onChange={() => handleEmailNotificationTypeChange('technicalAlert')}
-                    />
-                    技术指标预警
-                  </label>
-                  <label className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">
-                    <input 
-                      type="checkbox" 
-                      className="rounded" 
-                      checked={emailNotificationTypes.onChainEvent}
-                      onChange={() => handleEmailNotificationTypeChange('onChainEvent')}
-                    />
-                    链上事件
-                  </label>
-                  <label className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">
-                    <input 
-                      type="checkbox" 
-                      className="rounded" 
-                      checked={emailNotificationTypes.aiReport}
-                      onChange={() => handleEmailNotificationTypeChange('aiReport')}
-                    />
-                    AI分析报告
-                  </label>
                 </div>
               </div>
+              
+              {/* 高级设置 */}
+              <div 
+                className="flex items-center justify-between mt-2 py-2 px-1 cursor-pointer transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg"
+                onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+              >
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">高级设置</span>
+                <span className="material-symbols-outlined text-slate-400 transition-all duration-200 transform">
+                  {showAdvancedSettings ? "expand_less" : "expand_more"}
+                </span>
+              </div>
+              
+              {showAdvancedSettings && (
+                <div className="flex flex-col gap-3 pt-2 border-t border-slate-200 dark:border-slate-800 animate-fade-in">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs text-slate-500">通知频率</span>
+                    <select className="flex-1 bg-slate-200 dark:bg-slate-700 border-0 rounded-lg px-3 py-2 text-sm">
+                      <option>实时通知</option>
+                      <option>每小时汇总</option>
+                      <option>每天汇总</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs text-slate-500">其他通知类型</span>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">
+                        <input 
+                          type="checkbox" 
+                          className="rounded" 
+                          checked={emailNotificationTypes.technicalAlert}
+                          onChange={() => handleEmailNotificationTypeChange('technicalAlert')}
+                        />
+                        技术指标预警
+                      </label>
+                      <label className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">
+                        <input 
+                          type="checkbox" 
+                          className="rounded" 
+                          checked={emailNotificationTypes.onChainEvent}
+                          onChange={() => handleEmailNotificationTypeChange('onChainEvent')}
+                        />
+                        链上事件
+                      </label>
+                      <label className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">
+                        <input 
+                          type="checkbox" 
+                          className="rounded" 
+                          checked={emailNotificationTypes.aiReport}
+                          onChange={() => handleEmailNotificationTypeChange('aiReport')}
+                        />
+                        AI分析报告
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           

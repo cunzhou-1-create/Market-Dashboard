@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
 
 /**
  * 头部组件
@@ -8,7 +8,7 @@ import { useApp } from '../context/AppContext';
  */
 const Header = () => {
   const navigate = useNavigate();
-  const { user, logout } = useApp();
+  const { user, logout } = useUser();
   
   const handleAuthClick = () => {
     navigate('/auth');
