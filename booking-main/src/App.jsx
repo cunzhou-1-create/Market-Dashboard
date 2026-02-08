@@ -9,6 +9,8 @@ import Task from './components/Task';
 import Auth from './components/Auth';
 import Trade from './components/Trade';
 import AiMarket from './components/AiMarket';
+import AccountManagement from './components/AccountManagement';
+import NotificationChannels from './components/NotificationChannels';
 import ErrorMessage from './components/ErrorMessage';
 import LoadingSpinner from './components/LoadingSpinner';
 import { useGlobalApp } from './context/AppContext';
@@ -41,6 +43,12 @@ function App() {
             element={<Settings />} 
           />
           
+          {/* 账户管理页面路由 - 直接访问，不需要登录 */}
+          <Route 
+            path="/account-management" 
+            element={<AccountManagement />} 
+          />
+          
           {/* 详情页面路由 - 直接访问，不需要登录 */}
           <Route 
             path="/detail" 
@@ -63,6 +71,12 @@ function App() {
           <Route 
             path="/ai-market" 
             element={<AiMarket />} 
+          />
+          
+          {/* 通知渠道页面路由 - 直接访问，不需要登录 */}
+          <Route 
+            path="/notification-channels" 
+            element={<NotificationChannels />} 
           />
         </Routes>
       </Router>

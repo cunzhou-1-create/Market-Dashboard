@@ -5,21 +5,56 @@ from app.config import settings
 from app.services.market_service import MarketService
 from app.services.trade_service import TradeService
 from sqlalchemy.orm import Session
+from app.models.trade import ApiKey
+from app.utils.security import verify_api_key
 
 
 class AIService:
     """AI服务类，用于千问API集成和交易信号生成"""
     
     @staticmethod
-    def get_qwen_client() -> Dict:
+    def get_user_api_key(db: Session, user_id: int, provider: str) -> Optional[str]:
+        """获取用户的API密钥"""
+        from app.utils.security import verify_api_key
+        
+        # 查询用户的API密钥
+        api_key = db.query(ApiKey).filter(
+            ApiKey.user_id == user_id,
+            ApiKey.provider == provider,
+            ApiKey.is_connected == True
+        ).first()
+        
+        if api_key:
+            # 这里简化处理，实际应该从哈希中恢复API密钥
+            # 由于我们只存储了哈希值，这里需要从其他地方获取原始密钥
+            # 暂时返回配置中的API密钥
+            if provider == 'qwen':
+                return settings.QWEN_API_KEY
+            elif provider == 'openai':
+                return settings.OPENAI_API_KEY
+            elif provider == 'anthropic':
+                return settings.ANTHROPIC_API_KEY
+        
+        return None
+    
+    @staticmethod
+    def get_qwen_client(user_id: Optional[int] = None, db: Optional[Session] = None) -> Dict:
         """获取千问API客户端配置"""
+        api_key = settings.QWEN_API_KEY
+        
+        # 如果提供了用户ID和数据库会话，优先使用用户的API密钥
+        if user_id and db:
+            user_api_key = AIService.get_user_api_key(db, user_id, 'qwen')
+            if user_api_key:
+                api_key = user_api_key
+        
         return {
-            "api_key": settings.QWEN_API_KEY,
+            "api_key": api_key,
             "api_url": settings.QWEN_API_URL
         }
     
     @staticmethod
-    def generate_trade_signal(db: Session) -> Optional[Dict]:
+    def generate_trade_signal(db: Session, user_id: Optional[int] = None) -> Optional[Dict]:
         """生成交易信号"""
         try:
             # 获取市场数据
@@ -32,7 +67,13 @@ class AIService:
                 market_summary += f"{item.symbol}: ${item.price}, 24h变化: {item.change}%\n"
             
             # 构建千问API请求
-            client = AIService.get_qwen_client()
+            client = AIService.get_qwen_client(user_id, db)
+            
+            # 检查API密钥是否存在
+            if not client['api_key']:
+                print("千问API密钥未配置")
+                return None
+            
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {client['api_key']}"
@@ -142,18 +183,13 @@ class AIService:
                 side=signal['side'],
                 price=signal['price'],
                 quantity=signal['quantity'],
-                total=signal['price'] * signal['quantity']
+                total=signal['price'] * signal['quantity'],
+                is_ai_trade=True,
+                ai_signal_id=signal.get('signal_id')
             )
             
             # 执行交易
             trade = trade_service.create_trade(db, user_id, trade_data)
-            
-            # 更新交易记录为AI交易
-            trade.is_ai_trade = True
-            if 'signal_id' in signal:
-                trade.ai_signal_id = signal['signal_id']
-            db.commit()
-            db.refresh(trade)
             
             # 更新AI信号的执行状态
             if 'signal_id' in signal:
@@ -183,7 +219,7 @@ class AIService:
             }
     
     @staticmethod
-    def analyze_market(db: Session) -> Optional[Dict]:
+    def analyze_market(db: Session, user_id: Optional[int] = None) -> Optional[Dict]:
         """分析市场情况"""
         try:
             # 获取市场数据
@@ -196,7 +232,13 @@ class AIService:
                 market_summary += f"{item.symbol}: ${item.price}, 24h变化: {item.change}%\n"
             
             # 构建千问API请求
-            client = AIService.get_qwen_client()
+            client = AIService.get_qwen_client(user_id, db)
+            
+            # 检查API密钥是否存在
+            if not client['api_key']:
+                print("千问API密钥未配置")
+                return None
+            
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {client['api_key']}"

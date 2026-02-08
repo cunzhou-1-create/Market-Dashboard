@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -26,7 +27,7 @@ class UserResponse(UserBase):
     avatar: Optional[str] = None
     role: str
     tier: str
-    joined_at: str
+    joined_at: datetime
     
     class Config:
         from_attributes = True

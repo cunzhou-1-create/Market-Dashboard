@@ -22,50 +22,27 @@ def get_market_list(
     market_data = MarketService.get_market_data(db, skip, limit)
     total = len(market_data)
     
+    # 转换MarketData对象为字典
+    data = []
+    for item in market_data:
+        data.append({
+            "id": item.id,
+            "symbol": item.symbol,
+            "name": item.name,
+            "price": item.price,
+            "change": item.change,
+            "is_positive": item.is_positive,
+            "volume": getattr(item, "volume", 0),
+            "quote_volume": getattr(item, "quote_volume", 0),
+            "high_price": getattr(item, "high_price", 0),
+            "low_price": getattr(item, "low_price", 0),
+            "open_price": getattr(item, "open_price", 0),
+            "close_price": getattr(item, "close_price", 0)
+        })
+    
     return {
-        "data": market_data,
+        "data": data,
         "total": total
-    }
-
-
-# 获取单个币种数据
-@router.get("/{symbol}", response_model=MarketDataResponse)
-def get_symbol_detail(
-    symbol: str,
-    db: Session = Depends(get_db)
-):
-    """获取单个币种数据"""
-    market_data = MarketService.get_symbol_data(db, symbol)
-    if not market_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="币种不存在"
-        )
-    
-    return market_data
-
-
-# 获取技术指标
-@router.get("/technical/{symbol}", response_model=TechnicalResponse)
-def get_technical_indicators(
-    symbol: str,
-    db: Session = Depends(get_db)
-):
-    """获取技术指标"""
-    # 检查币种是否存在
-    market_data = MarketService.get_symbol_data(db, symbol)
-    if not market_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="币种不存在"
-        )
-    
-    # 获取技术指标
-    indicators = MarketService.get_technical_indicators(symbol)
-    
-    return {
-        "symbol": symbol,
-        "indicators": indicators
     }
 
 
@@ -134,3 +111,75 @@ def remove_from_watchlist(
         )
     
     return {"message": "已从观察列表中移除"}
+
+
+# 获取单个币种数据
+@router.get("/symbol", response_model=MarketDataResponse)
+def get_symbol_detail(
+    symbol: str = Query(..., description="交易对符号，例如 BTC/USDT"),
+    db: Session = Depends(get_db)
+):
+    """获取单个币种数据"""
+    market_data = MarketService.get_symbol_data(db, symbol)
+    if not market_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="币种不存在"
+        )
+    
+    # 转换MarketData对象为字典
+    return {
+        "id": market_data.id,
+        "symbol": market_data.symbol,
+        "name": market_data.name,
+        "price": market_data.price,
+        "change": market_data.change,
+        "is_positive": market_data.is_positive,
+        "volume": getattr(market_data, "volume", 0),
+        "quote_volume": getattr(market_data, "quote_volume", 0),
+        "high_price": getattr(market_data, "high_price", 0),
+        "low_price": getattr(market_data, "low_price", 0),
+        "open_price": getattr(market_data, "open_price", 0),
+        "close_price": getattr(market_data, "close_price", 0)
+    }
+
+
+# 获取技术指标
+@router.get("/technical", response_model=TechnicalResponse)
+def get_technical_indicators(
+    symbol: str = Query(..., description="交易对符号，例如 BTC/USDT"),
+    db: Session = Depends(get_db)
+):
+    """获取技术指标"""
+    # 检查币种是否存在
+    market_data = MarketService.get_symbol_data(db, symbol)
+    if not market_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="币种不存在"
+        )
+    
+    # 获取技术指标
+    indicators = MarketService.get_technical_indicators(symbol)
+    
+    return {
+        "symbol": symbol,
+        "indicators": indicators
+    }
+
+
+# 获取期货市场数据列表
+@router.get("/futures", response_model=MarketDataList)
+def get_futures_market_list(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """获取期货市场数据列表"""
+    futures_data = MarketService.get_futures_data(db, skip, limit)
+    total = len(futures_data)
+    
+    return {
+        "data": futures_data,
+        "total": total
+    }

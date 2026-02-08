@@ -1,0 +1,65 @@
+{
+  "data": [
+    {
+      "symbol": "BTC/USD",
+      "name": "Bitcoin",
+      "price": 48200,
+      "change": 2.4,
+      "is_positive": true,
+      "volume": 12500,
+      "quoteVolume": 1250000,
+      "lastPrice": 48200,
+      "highPrice": 49100,
+      "lowPrice": 47300
+    },
+    {
+      "symbol": "ETH/USD",
+      "name": "Ethereum",
+      "price": 2650,
+      "change": -1.2,
+      "is_positive": false,
+      "volume": 250000,
+      "quoteVolume": 2500000,
+      "lastPrice": 2650,
+      "highPrice": 2700,
+      "lowPrice": 2600
+    },
+    {
+      "symbol": "SOL/USD",
+      "name": "Solana",
+      "price": 105,
+      "change": 5.8,
+      "is_positive": true,
+      "volume": 1500000,
+      "quoteVolume": 1500000,
+      "lastPrice": 105,
+      "highPrice": 108,
+      "lowPrice": 100
+    },
+    {
+      "symbol": "ARB/USD",
+      "name": "Arbitrum",
+      "price": 1.05,
+      "change": 12.4,
+      "is_positive": true,
+      "volume": 50000000,
+      "quoteVolume": 50000000,
+      "lastPrice": 1.05,
+      "highPrice": 1.08,
+      "lowPrice": 0.95
+    },
+    {
+      "symbol": "LINK/USD",
+      "name": "Chainlink",
+      "price": 15.2,
+      "change": 8.1,
+      "is_positive": true,
+      "volume": 5000000,
+      "quoteVolume": 5000000,
+      "lastPrice": 15.2,
+      "highPrice": 15.8,
+      "lowPrice": 14.0
+    }
+  ],
+  "total": 5
+}

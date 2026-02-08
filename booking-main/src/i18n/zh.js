@@ -12,6 +12,13 @@ export const zh = {
   switchAccount: '切换账户',
   activeMainAccount: '活跃: 主币安账户',
   addNewAccount: '添加新账户',
+  accounts: '账户',
+  accountName: '账户名称',
+  platform: '平台',
+  active: '活跃',
+  noAccounts: '暂无账户',
+  addFirstAccount: '添加您的第一个账户开始使用',
+  confirmDeleteAccount: '确定要删除这个账户吗？',
   
   // AI & Integrations Section
   aiIntegrations: 'AI 与集成',

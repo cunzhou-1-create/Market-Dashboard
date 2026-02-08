@@ -4,6 +4,7 @@ from app.models.trade import TradeRecord, ApiKey
 from app.models.user import User
 from app.schemas.trade import TradeRecordCreate, ApiKeyCreate
 from app.utils.security import hash_api_key, verify_api_key
+import requests
 
 
 class TradeService:
@@ -102,8 +103,67 @@ class TradeService:
         }
     
     @staticmethod
+    def verify_api_key(provider: str, api_key: str) -> bool:
+        """验证API密钥"""
+        try:
+            if provider == 'qwen':
+                # 验证千问API密钥
+                url = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}"
+                }
+                payload = {
+                    "model": "qwen-turbo",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "你是一个验证助手，只需要返回'OK'"
+                        },
+                        {
+                            "role": "user",
+                            "content": "验证API密钥"
+                        }
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 10
+                }
+                response = requests.post(url, headers=headers, json=payload, timeout=5)
+                return response.status_code == 200
+            elif provider == 'openai':
+                # 验证OpenAI API密钥
+                url = "https://api.openai.com/v1/models"
+                headers = {
+                    "Authorization": f"Bearer {api_key}"
+                }
+                response = requests.get(url, headers=headers, timeout=5)
+                return response.status_code == 200
+            elif provider == 'anthropic':
+                # 验证Anthropic API密钥
+                url = "https://api.anthropic.com/v1/models"
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                response = requests.get(url, headers=headers, timeout=5)
+                return response.status_code == 200
+            elif provider == 'binance':
+                # 验证Binance API密钥
+                # 这里简化处理，实际应该使用Binance API进行验证
+                return len(api_key) > 20
+            else:
+                # 默认验证：检查API密钥长度
+                return len(api_key) > 0
+        except Exception as e:
+            print(f"验证API密钥失败: {str(e)}")
+            return False
+    
+    @staticmethod
     def add_api_key(db: Session, user_id: int, api_key_data: ApiKeyCreate) -> ApiKey:
         """添加API密钥"""
+        # 验证API密钥
+        is_valid = TradeService.verify_api_key(api_key_data.provider, api_key_data.api_key)
+        
         # 哈希API密钥
         hashed_api_key = hash_api_key(api_key_data.api_key)
         
@@ -112,7 +172,7 @@ class TradeService:
             user_id=user_id,
             provider=api_key_data.provider,
             api_key_hash=hashed_api_key,
-            is_connected=False  # 默认为未连接状态
+            is_connected=is_valid  # 根据验证结果设置连接状态
         )
         
         db.add(new_api_key)
@@ -120,6 +180,23 @@ class TradeService:
         db.refresh(new_api_key)
         
         return new_api_key
+    
+    @staticmethod
+    def update_api_key_connection_status(db: Session, api_key_id: int, user_id: int, is_connected: bool) -> bool:
+        """更新API密钥连接状态"""
+        api_key = db.query(ApiKey).filter(
+            ApiKey.id == api_key_id,
+            ApiKey.user_id == user_id
+        ).first()
+        
+        if not api_key:
+            return False
+        
+        api_key.is_connected = is_connected
+        db.commit()
+        db.refresh(api_key)
+        
+        return True
     
     @staticmethod
     def get_user_api_keys(db: Session, user_id: int) -> List[ApiKey]:

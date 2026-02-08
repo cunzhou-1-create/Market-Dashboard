@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 /**
  * 任务上下文
- * 处理任务相关的状态和逻辑
+ * 处理任务相关的状态和逻辑，包括链上事件提醒
  */
 const TaskContext = createContext();
 
@@ -14,9 +14,11 @@ const TaskContext = createContext();
 export const TaskProvider = ({ children }) => {
   // 任务状态
   const [tasks, setTasks] = useState([]);
+  const [chainEventAlerts, setChainEventAlerts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   /**
-   * 预留API：获取任务列表
+   * 获取任务列表
    * @returns {Promise<Array>} - 任务列表
    */
   const fetchTasks = async () => {
@@ -27,7 +29,92 @@ export const TaskProvider = ({ children }) => {
   };
 
   /**
-   * 从本地存储加载任务
+   * 获取链上事件提醒列表
+   * @returns {Promise<Array>} - 链上事件提醒列表
+   */
+  const fetchChainEventAlerts = async () => {
+    try {
+      setLoading(true);
+      // 预留API调用位置
+      // 后续实现：调用真实API获取链上事件提醒列表
+      // 暂时返回模拟数据
+      return chainEventAlerts;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * 创建链上事件提醒
+   * @param {Object} alertData - 链上事件提醒数据
+   * @returns {Promise<Object>} - 创建的链上事件提醒
+   */
+  const createChainEventAlert = async (alertData) => {
+    try {
+      setLoading(true);
+      // 预留API调用位置
+      // 后续实现：调用真实API创建链上事件提醒
+      // 暂时模拟创建
+      const newAlert = {
+        id: Date.now(),
+        ...alertData,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+      const updatedAlerts = [...chainEventAlerts, newAlert];
+      setChainEventAlerts(updatedAlerts);
+      localStorage.setItem('chainEventAlerts', JSON.stringify(updatedAlerts));
+      return newAlert;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * 更新链上事件提醒状态
+   * @param {number} alertId - 链上事件提醒ID
+   * @param {string} newStatus - 新状态
+   * @returns {Promise<Object>} - 更新后的链上事件提醒
+   */
+  const updateChainEventAlertStatus = async (alertId, newStatus) => {
+    try {
+      setLoading(true);
+      // 预留API调用位置
+      // 后续实现：调用真实API更新链上事件提醒状态
+      // 暂时模拟更新
+      const updatedAlerts = chainEventAlerts.map(alert => 
+        alert.id === alertId ? { ...alert, status: newStatus } : alert
+      );
+      setChainEventAlerts(updatedAlerts);
+      localStorage.setItem('chainEventAlerts', JSON.stringify(updatedAlerts));
+      return updatedAlerts.find(alert => alert.id === alertId);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * 删除链上事件提醒
+   * @param {number} alertId - 链上事件提醒ID
+   * @returns {Promise<boolean>} - 删除是否成功
+   */
+  const deleteChainEventAlert = async (alertId) => {
+    try {
+      setLoading(true);
+      // 预留API调用位置
+      // 后续实现：调用真实API删除链上事件提醒
+      // 暂时模拟删除
+      const updatedAlerts = chainEventAlerts.filter(alert => alert.id !== alertId);
+      setChainEventAlerts(updatedAlerts);
+      localStorage.setItem('chainEventAlerts', JSON.stringify(updatedAlerts));
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * 从本地存储加载数据
    * 应用启动时执行一次
    */
   useEffect(() => {
@@ -102,12 +189,62 @@ export const TaskProvider = ({ children }) => {
       setTasks(mockTasks);
       localStorage.setItem('tasks', JSON.stringify(mockTasks));
     }
+
+    // 加载链上事件提醒
+    const savedChainEventAlerts = localStorage.getItem('chainEventAlerts');
+    if (savedChainEventAlerts) {
+      setChainEventAlerts(JSON.parse(savedChainEventAlerts));
+    } else {
+      // 模拟链上事件提醒数据
+      const mockChainEventAlerts = [
+        {
+          id: 1,
+          title: '大额ETH转账提醒',
+          description: '当ETH转账金额超过10000时提醒',
+          eventType: 'large_transfer',
+          threshold: '10000',
+          chain: 'ethereum',
+          notificationChannels: {
+            email: true,
+            telegram: false,
+            webhook: false
+          },
+          status: 'active',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 2,
+          title: '交易所BTC净流入提醒',
+          description: '当交易所BTC净流入超过5000时提醒',
+          eventType: 'exchange_inflow',
+          threshold: '5000',
+          chain: 'bitcoin',
+          notificationChannels: {
+            email: true,
+            telegram: true,
+            webhook: false
+          },
+          telegramChatId: '123456789',
+          status: 'active',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      setChainEventAlerts(mockChainEventAlerts);
+      localStorage.setItem('chainEventAlerts', JSON.stringify(mockChainEventAlerts));
+    }
   }, []);
   
   // 上下文值，包含所有状态和方法
   const contextValue = {
     tasks,
-    fetchTasks
+    chainEventAlerts,
+    loading,
+    fetchTasks,
+    fetchChainEventAlerts,
+    createChainEventAlert,
+    updateChainEventAlertStatus,
+    deleteChainEventAlert
   };
   
   return (

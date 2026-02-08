@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
+import { useMarket } from '../context/MarketContext';
 import { useNavigate } from 'react-router-dom';
 
 const Auth = () => {
@@ -13,16 +14,27 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   
   const { login, register, isLoading, error, user, getVerificationCode } = useUser();
+  const { fetchMarketData, fetchPriceAlerts } = useMarket();
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const navigate = useNavigate();
   
   // 如果用户已登录，重定向到首页
   React.useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+    const handleUserLogin = async () => {
+      if (user) {
+        // 登录成功后，重新获取市场数据和价格预警
+        await Promise.all([
+          fetchMarketData(),
+          fetchPriceAlerts()
+        ]);
+        // 然后重定向到首页
+        navigate('/');
+      }
+    };
+    
+    handleUserLogin();
+  }, [user, navigate, fetchMarketData, fetchPriceAlerts]);
   
   // 表单验证
   const validateForm = () => {
@@ -242,15 +254,12 @@ const Auth = () => {
                   formErrors.password ? 'border-red-500' : ''
                 }`}
               />
-              <button
-                type="button"
+              <div 
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer transition-all duration-200 hover:text-slate-600 dark:hover:text-white hover:scale-110"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
               >
-                <span className="material-symbols-outlined">
-                  {showPassword ? 'visibility_off' : 'visibility'}
-                </span>
-              </button>
+                <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+              </div>
             </div>
             {formErrors.password && (
               <p className="text-red-500 text-xs mt-1 animate-fade-in">{formErrors.password}</p>

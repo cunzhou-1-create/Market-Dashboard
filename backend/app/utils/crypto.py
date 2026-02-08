@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional
 import ccxt
+import requests
+import time
 from app.config import settings
 
 
@@ -33,9 +35,67 @@ MOCK_MARKET_DATA = [
 ]
 
 
+# 缓存变量
+_cached_market_data = []
+_last_fetch_time = 0
+CACHE_DURATION = 60  # 缓存60秒
+
+
 # 获取市场数据
 def get_market_data() -> List[Dict]:
     """获取市场数据"""
+    global _cached_market_data, _last_fetch_time
+    
+    # 检查缓存是否有效
+    current_time = time.time()
+    if _cached_market_data and current_time - _last_fetch_time < CACHE_DURATION:
+        return _cached_market_data
+    
+    # 尝试从Binance Spot API获取数据
+    try:
+        response = requests.get('https://api.binance.com/api/v3/ticker/24hr', timeout=10)
+        response.raise_for_status()
+        
+        # 处理API响应
+        tickers = response.json()
+        market_data = []
+        
+        # 过滤掉非USDT交易对，只处理主流交易对
+        for ticker in tickers:
+            symbol = ticker['symbol']
+            # 只处理USDT交易对
+            if symbol.endswith('USDT'):
+                # 转换符号格式为 BTC/USDT
+                formatted_symbol = f"{symbol[:-4]}/USDT"
+                
+                # 计算涨跌幅
+                price_change_percent = float(ticker['priceChangePercent'])
+                
+                market_data.append({
+                    "symbol": formatted_symbol,
+                    "name": symbol[:-4],  # 简化名称
+                    "price": float(ticker['lastPrice']),
+                    "change": price_change_percent,
+                    "is_positive": price_change_percent >= 0,
+                    "volume": float(ticker['volume']),
+                    "quote_volume": float(ticker['quoteVolume']),
+                    "high_price": float(ticker['highPrice']),
+                    "low_price": float(ticker['lowPrice']),
+                    "open_price": float(ticker['openPrice']),
+                    "close_price": float(ticker['lastPrice'])
+                })
+        
+        # 限制返回数据量，只返回前100个
+        market_data = market_data[:100]
+        
+        if market_data:
+            # 更新缓存
+            _cached_market_data = market_data
+            _last_fetch_time = current_time
+            return market_data
+    except Exception as e:
+        print(f"从Binance API获取市场数据失败: {e}")
+    
     # 尝试使用CCXT获取真实数据
     if settings.BINANCE_API_KEY and settings.BINANCE_API_SECRET:
         try:
@@ -56,10 +116,19 @@ def get_market_data() -> List[Dict]:
                         "name": symbol.split('/')[0],
                         "price": ticker['last'],
                         "change": ticker['percentage'],
-                        "is_positive": ticker['percentage'] >= 0
+                        "is_positive": ticker['percentage'] >= 0,
+                        "volume": ticker.get('baseVolume', 0),
+                        "quote_volume": ticker.get('quoteVolume', 0),
+                        "high_price": ticker.get('high', 0),
+                        "low_price": ticker.get('low', 0),
+                        "open_price": ticker.get('open', 0),
+                        "close_price": ticker.get('last', 0)
                     })
             
             if market_data:
+                # 更新缓存
+                _cached_market_data = market_data
+                _last_fetch_time = current_time
                 return market_data
         except Exception as e:
             print(f"获取市场数据失败: {e}")
@@ -110,3 +179,74 @@ def check_price_alert_condition(current_price: float, condition: str, threshold:
     elif condition == 'price_lt':
         return current_price < threshold
     return False
+
+
+# 获取期货市场数据
+def get_futures_data() -> List[Dict]:
+    """获取Binance COIN-M永续合约24小时统计数据"""
+    global _cached_market_data, _last_fetch_time
+    
+    # 检查缓存是否有效
+    current_time = time.time()
+    if _cached_market_data and current_time - _last_fetch_time < CACHE_DURATION:
+        return _cached_market_data
+    
+    # 尝试从Binance COIN-M合约API获取数据
+    try:
+        response = requests.get('https://dapi.binance.com/dapi/v1/ticker/24hr', timeout=10)
+        response.raise_for_status()
+        
+        # 处理API响应
+        tickers = response.json()
+        futures_data = []
+        
+        # 过滤并处理COIN-M合约数据
+        for ticker in tickers:
+            symbol = ticker['symbol']
+            # 只处理COIN-M永续合约（以_PERP结尾）
+            if symbol.endswith('_PERP'):
+                # 转换符号格式为 BTC/USDT
+                base_asset = symbol.replace('_PERP', '')
+                if base_asset.endswith('USD'):
+                    base = base_asset[:-3]
+                    formatted_symbol = f"{base}/USD"
+                else:
+                    formatted_symbol = symbol
+                
+                # 计算涨跌幅
+                price_change_percent = float(ticker['priceChangePercent'])
+                
+                futures_data.append({
+                    "symbol": formatted_symbol,
+                    "name": base_asset[:-3],  # 简化名称
+                    "price": float(ticker['lastPrice']),
+                    "change": price_change_percent,
+                    "is_positive": price_change_percent >= 0,
+                    "volume": float(ticker['volume']),  # 合约张数
+                    "quoteVolume": float(ticker['quoteVolume']),  # 以标的币计价的成交额
+                    "lastPrice": float(ticker['lastPrice']),
+                    "highPrice": float(ticker['highPrice']),
+                    "lowPrice": float(ticker['lowPrice']),
+                    "openPrice": float(ticker['openPrice']),
+                    "closePrice": float(ticker['lastPrice'])
+                })
+        
+        # 限制返回数据量，只返回前100个
+        futures_data = futures_data[:100]
+        
+        if futures_data:
+            # 更新缓存
+            _cached_market_data = futures_data
+            _last_fetch_time = current_time
+            return futures_data
+    except Exception as e:
+        print(f"从Binance COIN-M API获取数据失败: {e}")
+    
+    # 返回模拟COIN-M合约数据
+    return [
+        {"symbol": "BTC/USD", "name": "Bitcoin", "price": 48200, "change": 2.4, "is_positive": True, "volume": 12500, "quoteVolume": 1250000, "lastPrice": 48200, "highPrice": 49100, "lowPrice": 47300},
+        {"symbol": "ETH/USD", "name": "Ethereum", "price": 2650, "change": -1.2, "is_positive": False, "volume": 250000, "quoteVolume": 2500000, "lastPrice": 2650, "highPrice": 2700, "lowPrice": 2600},
+        {"symbol": "SOL/USD", "name": "Solana", "price": 105, "change": 5.8, "is_positive": True, "volume": 1500000, "quoteVolume": 1500000, "lastPrice": 105, "highPrice": 108, "lowPrice": 100},
+        {"symbol": "ARB/USD", "name": "Arbitrum", "price": 1.05, "change": 12.4, "is_positive": True, "volume": 50000000, "quoteVolume": 50000000, "lastPrice": 1.05, "highPrice": 1.08, "lowPrice": 0.95},
+        {"symbol": "LINK/USD", "name": "Chainlink", "price": 15.2, "change": 8.1, "is_positive": True, "volume": 5000000, "quoteVolume": 5000000, "lastPrice": 15.2, "highPrice": 15.8, "lowPrice": 14.0}
+    ]

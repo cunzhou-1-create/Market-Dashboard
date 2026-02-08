@@ -132,14 +132,20 @@ export const UserProvider = ({ children }) => {
    * @returns {Promise<Object|null>} - 用户资料
    */
   const getProfile = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
       const profile = await api.user.getProfile();
       setUser(profile);
       localStorage.setItem('user', JSON.stringify(profile));
       return profile;
     } catch (err) {
+      setError(err.message || '获取用户资料失败');
       console.error('获取用户资料失败:', err);
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -193,11 +199,17 @@ export const UserProvider = ({ children }) => {
    * @returns {Promise<Object|null>} - 用户统计信息
    */
   const getUserStats = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
       return await api.user.getStats();
     } catch (err) {
+      setError(err.message || '获取用户统计信息失败');
       console.error('获取用户统计信息失败:', err);
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -206,11 +218,17 @@ export const UserProvider = ({ children }) => {
    * @returns {Promise<Object|null>} - 登录历史记录
    */
   const getLoginHistory = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
       return await api.user.getLoginHistory();
     } catch (err) {
+      setError(err.message || '获取登录历史记录失败');
       console.error('获取登录历史记录失败:', err);
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
   

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Navigation from './Navigation';
+import api from '../services/api';
 
 /**
  * 交易组件
@@ -10,6 +11,9 @@ import Navigation from './Navigation';
 const Trade = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('aiTraders');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
 
   // 从URL参数中读取tab值并设置activeTab
   useEffect(() => {
@@ -20,8 +24,8 @@ const Trade = () => {
     }
   }, [location.search]);
 
-  // 模拟AI交易员数据
-  const aiTraders = [
+  // AI交易员数据状态
+  const [aiTraders, setAiTraders] = useState([
     {
       id: 1,
       name: 'Alpha Trader',
@@ -62,7 +66,87 @@ const Trade = () => {
       avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20trader%20avatar%20female%20tech%20style&image_size=square',
       chartData: [100, 101, 103, 105, 108, 110, 112.8]
     }
-  ];
+  ]);
+
+  // AI交易信号和调度器状态
+  const [aiSchedulerStatus, setAiSchedulerStatus] = useState(null);
+  const [aiTradeSignals, setAiTradeSignals] = useState([]);
+
+  // 加载AI交易员数据
+  const loadAiTraders = async () => {
+    try {
+      // 这里可以添加从API获取AI交易员数据的逻辑
+      // 暂时使用模拟数据
+      console.log('加载AI交易员数据');
+    } catch (error) {
+      console.error('加载AI交易员数据失败:', error);
+    }
+  };
+
+  // 加载AI交易调度器状态
+  const loadAiSchedulerStatus = async () => {
+    try {
+      const status = await api.trade.getAiSchedulerStatus();
+      setAiSchedulerStatus(status);
+    } catch (error) {
+      setError('加载AI交易调度器状态失败: ' + (error.message || '未知错误'));
+      console.error('加载AI交易调度器状态失败:', error);
+    }
+  };
+
+  // 加载AI交易信号
+  const loadAiTradeSignals = async () => {
+    try {
+      const signals = await api.trade.getAiTradeSignals();
+      setAiTradeSignals(signals);
+    } catch (error) {
+      setError('加载AI交易信号失败: ' + (error.message || '未知错误'));
+      console.error('加载AI交易信号失败:', error);
+    }
+  };
+
+  // 启动AI交易调度器
+  const startAiScheduler = async () => {
+    try {
+      setIsLoading(true);
+      await api.trade.startAiScheduler();
+      setMessage('AI交易调度器已启动');
+      await loadAiSchedulerStatus();
+    } catch (error) {
+      setError('启动AI交易调度器失败: ' + (error.message || '未知错误'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 停止AI交易调度器
+  const stopAiScheduler = async () => {
+    try {
+      setIsLoading(true);
+      await api.trade.stopAiScheduler();
+      setMessage('AI交易调度器已停止');
+      await loadAiSchedulerStatus();
+    } catch (error) {
+      setError('停止AI交易调度器失败: ' + (error.message || '未知错误'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 手动触发AI交易
+  const triggerAiTrade = async () => {
+    try {
+      setIsLoading(true);
+      const result = await api.trade.triggerAiTrade();
+      setMessage('AI交易已触发: ' + (result.message || '成功'));
+      await loadTradeHistory();
+      await loadAiTradeSignals();
+    } catch (error) {
+      setError('触发AI交易失败: ' + (error.message || '未知错误'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 模拟交易相关状态
   const [simulationData, setSimulationData] = useState({
@@ -129,6 +213,139 @@ const Trade = () => {
   // 时间范围选择状态
   const [timeRange, setTimeRange] = useState('7d'); // 7d, 30d, 90d, 1y
 
+  // 加载交易记录
+  const loadTradeHistory = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // 调用真实API获取交易记录
+      const trades = await api.trade.getTradeHistory();
+      if (trades && Array.isArray(trades)) {
+        setSimulationData(prev => ({
+          ...prev,
+          userTrades: trades
+        }));
+      }
+    } catch (err) {
+      setError('加载交易记录失败: ' + (err.message || '未知错误'));
+      console.error('加载交易记录失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 执行模拟交易
+  const executeTrade = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      // 验证表单
+      if (!newTrade.amount) {
+        throw new Error('请填写交易数量');
+      }
+      if (!newTrade.price) {
+        throw new Error('请填写交易价格');
+      }
+      
+      const amount = parseFloat(newTrade.amount);
+      const price = parseFloat(newTrade.price);
+      
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error('交易数量必须是正数');
+      }
+      if (isNaN(price) || price <= 0) {
+        throw new Error('交易价格必须是正数');
+      }
+      
+      // 计算交易总额
+      const total = amount * price;
+      
+      // 检查余额是否足够
+      const currentBalance = parseFloat(simulationData.balance.replace(/,/g, ''));
+      if (total > currentBalance) {
+        throw new Error('余额不足');
+      }
+      
+      // 调用真实API执行交易
+      const tradeData = {
+        symbol: newTrade.symbol,
+        side: newTrade.type,
+        price: price,
+        quantity: amount,
+        total: total
+      };
+      
+      const result = await api.trade.executeTrade(tradeData);
+      
+      if (result) {
+        setMessage('交易执行成功');
+        // 重置表单
+        setNewTrade({
+          symbol: 'BTC/USDT',
+          type: 'buy',
+          amount: '',
+          price: ''
+        });
+        // 重新加载交易记录和账户信息
+        await loadTradeHistory();
+        await loadAccountInfo();
+      }
+    } catch (err) {
+      setError('执行交易失败: ' + (err.message || '未知错误'));
+      console.error('执行交易失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 加载账户信息
+  const loadAccountInfo = async () => {
+    try {
+      const accountInfo = await api.trade.getAccountInfo();
+      setSimulationData(prev => ({
+        ...prev,
+        balance: accountInfo.balance.toFixed(2)
+      }));
+    } catch (error) {
+      console.error('加载账户信息失败:', error);
+    }
+  };
+
+  // 组件挂载时加载数据
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await loadTradeHistory();
+      await loadAccountInfo();
+      await loadAiSchedulerStatus();
+      await loadAiTradeSignals();
+      await loadAiTraders();
+    };
+
+    loadInitialData();
+  }, []);
+
+  // 定时刷新数据
+  useEffect(() => {
+    // 每30秒刷新一次数据
+    const interval = setInterval(async () => {
+      try {
+        await loadTradeHistory();
+        await loadAccountInfo();
+        await loadAiSchedulerStatus();
+        await loadAiTradeSignals();
+      } catch (error) {
+        console.error('定时刷新数据失败:', error);
+      }
+    }, 30000);
+
+    // 清理定时器
+    return () => clearInterval(interval);
+  }, []);
+
   // 图表组件
   const Chart = ({ data }) => {
     const maxValue = Math.max(...data);
@@ -179,6 +396,20 @@ const Trade = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">交易</h1>
         </div>
+        
+        {/* 错误提示 */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 p-3 rounded-lg mb-6 text-sm animate-fade-in">
+            {error}
+          </div>
+        )}
+        
+        {/* 成功提示 */}
+        {message && (
+          <div className="bg-green-50 dark:bg-green-900/20 text-green-500 dark:text-green-400 p-3 rounded-lg mb-6 text-sm animate-fade-in">
+            {message}
+          </div>
+        )}
 
         {/* 标签切换 */}
         <div className="flex gap-2 mb-6">
@@ -198,47 +429,138 @@ const Trade = () => {
 
         {/* AI交易员列表 */}
         {activeTab === 'aiTraders' && (
-          <div className="space-y-4">
-            {aiTraders.length > 0 ? (
-              aiTraders.map((trader) => (
-                <div key={trader.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                    <img 
-                      src={trader.avatar} 
-                      alt={trader.name} 
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div className="flex-1 w-full">
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-                        <h3 className="font-bold text-lg">{trader.name}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trader.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
-                          {trader.status === 'active' ? '运行中' : '已停止'}
+          <div className="space-y-6">
+            {/* AI交易调度器控制 */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+              <h3 className="font-semibold mb-4">AI交易调度器</h3>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">状态</p>
+                  <p className={`font-bold ${aiSchedulerStatus?.running ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                    {aiSchedulerStatus?.running ? '运行中' : '已停止'}
+                  </p>
+                  {aiSchedulerStatus && (
+                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">
+                      频率: {aiSchedulerStatus.interval}分钟
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                    onClick={startAiScheduler}
+                  >
+                    启动
+                  </button>
+                  <button 
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+                    onClick={stopAiScheduler}
+                  >
+                    停止
+                  </button>
+                  <button 
+                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors"
+                    onClick={triggerAiTrade}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center">
+                        <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span>
+                        触发中...
+                      </div>
+                    ) : (
+                      '手动触发'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* AI交易信号列表 */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+              <h3 className="font-semibold mb-4">AI交易信号</h3>
+              <div className="space-y-4">
+                {aiTradeSignals.length > 0 ? (
+                  aiTradeSignals.map((signal, index) => (
+                    <div key={signal.id} className={`${index < aiTradeSignals.length - 1 ? 'border-b border-slate-200 dark:border-slate-700 pb-4' : ''}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold">{signal.symbol}</h4>
+                          <p className={`text-sm font-medium ${signal.side === 'buy' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {signal.side === 'buy' ? '买入' : '卖出'}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${signal.is_executed ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
+                          {signal.is_executed ? '已执行' : '未执行'}
                         </span>
                       </div>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm">策略: {trader.strategy}</p>
-                      <div className="flex flex-wrap gap-4 mt-2">
+                      <div className="grid grid-cols-2 gap-4 mt-2">
                         <div>
-                          <p className="text-slate-500 dark:text-slate-400 text-xs">收益率</p>
-                          <p className="font-bold text-green-600 dark:text-green-400">{trader.profit}</p>
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">价格</p>
+                          <p className="font-bold">${signal.price}</p>
                         </div>
                         <div>
-                          <p className="text-slate-500 dark:text-slate-400 text-xs">交易次数</p>
-                          <p className="font-bold">{trader.trades}</p>
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">数量</p>
+                          <p className="font-bold">{signal.quantity}</p>
                         </div>
                       </div>
-                      <div className="mt-2">
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">账户走势</p>
-                        <Chart data={trader.chartData} />
+                      <p className="text-slate-400 dark:text-slate-500 text-xs mt-2">
+                        生成时间: {new Date(signal.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-slate-500 dark:text-slate-400">暂无AI交易信号</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AI交易员列表 */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">AI交易员</h3>
+              {aiTraders.length > 0 ? (
+                aiTraders.map((trader) => (
+                  <div key={trader.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                      <img 
+                        src={trader.avatar} 
+                        alt={trader.name} 
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div className="flex-1 w-full">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                          <h3 className="font-bold text-lg">{trader.name}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trader.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
+                            {trader.status === 'active' ? '运行中' : '已停止'}
+                          </span>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">策略: {trader.strategy}</p>
+                        <div className="flex flex-wrap gap-4 mt-2">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">收益率</p>
+                            <p className="font-bold text-green-600 dark:text-green-400">{trader.profit}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">交易次数</p>
+                            <p className="font-bold">{trader.trades}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-slate-500 dark:text-slate-400 text-xs">账户走势</p>
+                          <Chart data={trader.chartData} />
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
+                  <p className="text-slate-500 dark:text-slate-400">暂无AI交易员数据</p>
                 </div>
-              ))
-            ) : (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
-                <p className="text-slate-500 dark:text-slate-400">暂无AI交易员数据</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
@@ -368,8 +690,19 @@ const Trade = () => {
                     />
                   </div>
                 </div>
-                <button className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-colors">
-                  执行交易
+                <button 
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={executeTrade}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></span>
+                      处理中...
+                    </div>
+                  ) : (
+                    '执行交易'
+                  )}
                 </button>
               </div>
             </div>

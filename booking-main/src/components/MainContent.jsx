@@ -8,7 +8,7 @@ import { useMarket } from '../context/MarketContext';
  */
 const MainContent = () => {
   const navigate = useNavigate();
-  const { marketData, marketType, setMarketType } = useMarket();
+  const { marketData, marketType, setMarketType, isLoading, error } = useMarket();
   
   // 选中的菜单状态
   const [selectedMenu, setSelectedMenu] = useState('real-time');
@@ -29,6 +29,20 @@ const MainContent = () => {
   
   return (
     <main className="max-w-md mx-auto">
+      {/* 错误提示 */}
+      {error && (
+        <div className="px-4 py-3 m-4 bg-rose-500/10 text-rose-500 rounded-lg text-sm font-medium">
+          {error}
+        </div>
+      )}
+      
+      {/* 加载状态 */}
+      {isLoading && (
+        <div className="px-4 py-8 m-4 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-3 text-sm font-medium">加载中...</span>
+        </div>
+      )}
       {/* 菜单栏 */}
       <div className="px-4 py-4">
         <div className="flex items-center justify-between mb-4">

@@ -1,6 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navigation from './Navigation';
+import api from '../services/api';
 
 /**
  * 币对详情组件
@@ -8,6 +9,39 @@ import Navigation from './Navigation';
  */
 const Detail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 状态管理
+  const [symbol, setSymbol] = useState('BTC/USDT');
+  const [symbolData, setSymbolData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // 从URL参数中获取币对符号
+  useEffect(() => {
+    if (location.state?.symbol) {
+      setSymbol(location.state.symbol);
+    }
+  }, [location.state]);
+  
+  // 获取币对详细信息
+  useEffect(() => {
+    const fetchSymbolData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.market.getSymbolDetail(symbol);
+        setSymbolData(data);
+      } catch (err) {
+        setError(err.message || '获取币对数据失败');
+        console.error('Error fetching symbol data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSymbolData();
+  }, [symbol]);
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen">
@@ -22,8 +56,12 @@ const Detail = () => {
               arrow_back_ios
             </span>
             <div>
-              <h2 className="text-lg font-bold leading-tight">BTC/USDT</h2>
-              <p className="text-xs text-success font-medium">+2.45% (24h)</p>
+              <h2 className="text-lg font-bold leading-tight">{symbol}</h2>
+              {symbolData && (
+                <p className={`text-xs font-medium ${symbolData.isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {symbolData.isPositive ? '+' : ''}{symbolData.change}% (24h)
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -36,13 +74,33 @@ const Detail = () => {
       <main className="max-w-md mx-auto pb-40">
         {/* Live Price & Key Stats */}
         <div className="px-4 py-4 flex justify-between items-end">
-          <div>
-            <p className="text-3xl font-bold tracking-tight">$64,281.50</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">≈ 64,281.50 USD</p>
-          </div>
+          {loading ? (
+            <div className="flex-1">
+              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mt-2 animate-pulse"></div>
+            </div>
+          ) : error ? (
+            <div className="flex-1 text-rose-500">
+              <p>{error}</p>
+            </div>
+          ) : symbolData ? (
+            <div>
+              <p className="text-3xl font-bold tracking-tight">${symbolData.price.toLocaleString()}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">≈ {symbolData.price.toLocaleString()} USD</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-3xl font-bold tracking-tight">$0.00</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">≈ 0.00 USD</p>
+            </div>
+          )}
           <div className="text-right text-xs space-y-1 text-slate-500 dark:text-slate-400">
-            <p>24h High: <span className="text-slate-900 dark:text-white">65,120.00</span></p>
-            <p>24h Low: <span className="text-slate-900 dark:text-white">62,840.00</span></p>
+            {symbolData && (
+              <>
+                <p>24h High: <span className="text-slate-900 dark:text-white">{symbolData.high?.toLocaleString() || '0.00'}</span></p>
+                <p>24h Low: <span className="text-slate-900 dark:text-white">{symbolData.low?.toLocaleString() || '0.00'}</span></p>
+              </>
+            )}
           </div>
         </div>
         

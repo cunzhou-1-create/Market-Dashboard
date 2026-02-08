@@ -10,6 +10,12 @@ class MarketDataBase(BaseModel):
     price: float
     change: float
     is_positive: bool
+    volume: float = 0.0
+    quote_volume: float = 0.0
+    high_price: float = 0.0
+    low_price: float = 0.0
+    open_price: float = 0.0
+    close_price: float = 0.0
 
 
 class MarketDataCreate(MarketDataBase):
@@ -28,7 +34,7 @@ class MarketDataResponse(MarketDataBase):
 
 class MarketDataList(BaseModel):
     """市场数据列表响应模型"""
-    data: List[MarketDataResponse]
+    data: List[dict]
     total: int
 
 
@@ -47,6 +53,12 @@ class WatchlistResponse(BaseModel):
     price: float
     change: float
     is_positive: bool
+    volume: float = 0.0
+    quote_volume: float = 0.0
+    high_price: float = 0.0
+    low_price: float = 0.0
+    open_price: float = 0.0
+    close_price: float = 0.0
     created_at: datetime
     
     class Config:

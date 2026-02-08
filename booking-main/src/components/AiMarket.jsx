@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Navigation from './Navigation';
-import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
+import { useMarket } from '../context/MarketContext';
+import api from '../services/api';
 
 /**
  * AI行情订阅组件
@@ -10,7 +12,8 @@ import { useApp } from '../context/AppContext';
  */
 const AiMarket = () => {
   const navigate = useNavigate();
-  const { user, emailAlerts } = useApp();
+  const { user, emailAlerts } = useUser();
+  const { priceAlerts, createPriceAlert, deletePriceAlert, togglePriceAlert, isLoading, error, fetchPriceAlerts } = useMarket();
   
   // AI行情订阅状态
   const [isSubscriptionEnabled, setIsSubscriptionEnabled] = useState(true);
@@ -19,10 +22,6 @@ const AiMarket = () => {
   const [symbol, setSymbol] = useState('BTC/USDT');
   
   // 价格预警状态
-  const [priceAlerts, setPriceAlerts] = useState([
-    { id: 1, symbol: 'BTC', condition: '>', price: 70000, isEnabled: true },
-    { id: 2, symbol: 'SOL', condition: '<', price: 150, isEnabled: true }
-  ]);
   const [newAlert, setNewAlert] = useState({
     symbol: 'BTC',
     condition: '>',
@@ -36,6 +35,18 @@ const AiMarket = () => {
   // 检查是否已绑定邮件
   const hasEmail = user?.email && user.email.trim() !== '';
   
+  // 加载价格预警数据
+  useEffect(() => {
+    fetchPriceAlerts();
+  }, []);
+  
+  // 监听邮件通知状态变化
+  useEffect(() => {
+    if (hasEmail && !emailAlerts) {
+      showMessage('请开启邮件通知以接收价格预警提醒', 'info');
+    }
+  }, [hasEmail, emailAlerts]);
+  
   // 显示提示消息
   const showMessage = (text, type = 'success') => {
     setMessage(text);
@@ -45,8 +56,26 @@ const AiMarket = () => {
     }, 3000);
   };
   
+  // 保存AI订阅设置
+  const handleSaveSettings = async () => {
+    try {
+      const settingsData = {
+        prompt: prompt,
+        frequency: frequency,
+        symbol: symbol,
+        is_enabled: isSubscriptionEnabled
+      };
+      
+      const result = await api.market.saveAiSubscriptionSettings(settingsData);
+      showMessage('设置保存成功');
+    } catch (error) {
+      showMessage('保存设置失败: ' + (error.message || '未知错误'), 'error');
+      console.error('保存设置失败:', error);
+    }
+  };
+  
   // 处理添加预警
-  const handleAddAlert = () => {
+  const handleAddAlert = async () => {
     if (!hasEmail) {
       // 引导用户去设置页面绑定邮件
       showMessage('请先在设置页面绑定邮箱', 'error');
@@ -65,32 +94,50 @@ const AiMarket = () => {
       return;
     }
     
-    // 添加新预警
-    const newId = priceAlerts.length > 0 ? Math.max(...priceAlerts.map(a => a.id)) + 1 : 1;
-    const alertToAdd = {
-      id: newId,
-      ...newAlert,
-      isEnabled: true
-    };
-    
-    setPriceAlerts([...priceAlerts, alertToAdd]);
-    
-    // 重置表单
-    setNewAlert({
-      symbol: 'BTC',
-      condition: '>',
-      price: 70000
-    });
-    
-    // 显示成功提示
-    showMessage('价格预警添加成功');
+    try {
+      // 调用真实API创建价格预警
+      const alertData = {
+        symbol: newAlert.symbol,
+        condition: newAlert.condition,
+        price: newAlert.price,
+        is_active: true
+      };
+      
+      const result = await createPriceAlert(alertData);
+      
+      if (result) {
+        // 重置表单
+        setNewAlert({
+          symbol: 'BTC',
+          condition: '>',
+          price: 70000
+        });
+        
+        // 显示成功提示
+        showMessage('价格预警添加成功');
+      } else {
+        showMessage('创建价格预警失败', 'error');
+      }
+    } catch (error) {
+      showMessage('创建价格预警失败: ' + (error.message || '未知错误'), 'error');
+      console.error('创建价格预警失败:', error);
+    }
   };
   
   // 处理删除预警
-  const handleDeleteAlert = (id) => {
-    setPriceAlerts(prev => prev.filter(alert => alert.id !== id));
-    // 显示成功提示
-    showMessage('价格预警删除成功');
+  const handleDeleteAlert = async (id) => {
+    try {
+      const result = await deletePriceAlert(id);
+      if (result) {
+        // 显示成功提示
+        showMessage('价格预警删除成功');
+      } else {
+        showMessage('删除价格预警失败', 'error');
+      }
+    } catch (error) {
+      showMessage('删除价格预警失败: ' + (error.message || '未知错误'), 'error');
+      console.error('删除价格预警失败:', error);
+    }
   };
   
   // 模拟AI评估结果数据
@@ -139,10 +186,19 @@ const AiMarket = () => {
   const bearishCount = aiSignals.filter(signal => signal.signal === 'bearish').length;
 
   // 处理预警开关切换
-  const handleAlertToggle = (id) => {
-    setPriceAlerts(prev => prev.map(alert => 
-      alert.id === id ? { ...alert, isEnabled: !alert.isEnabled } : alert
-    ));
+  const handleAlertToggle = async (id) => {
+    try {
+      const result = await togglePriceAlert(id);
+      if (result !== null) {
+        // 显示成功提示
+        showMessage(result ? '价格预警已开启' : '价格预警已关闭');
+      } else {
+        showMessage('切换价格预警状态失败', 'error');
+      }
+    } catch (error) {
+      showMessage('切换价格预警状态失败: ' + (error.message || '未知错误'), 'error');
+      console.error('切换价格预警状态失败:', error);
+    }
   };
 
   return (
@@ -230,7 +286,10 @@ const AiMarket = () => {
                   <option value="ADA/USDT">ADA/USDT</option>
                 </select>
               </div>
-              <button className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-colors">
+              <button 
+                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-colors"
+                onClick={handleSaveSettings}
+              >
                 保存设置
               </button>
             </div>
@@ -343,12 +402,12 @@ const AiMarket = () => {
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                            {alert.symbol.charAt(0)}
+                            {alert.symbol?.charAt(0) || '?'}
                           </div>
                           <div>
-                            <p className="font-medium">{alert.symbol}</p>
+                            <p className="font-medium">{alert.symbol || 'Unknown'}</p>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              当 {alert.symbol} {alert.condition} ${alert.price.toLocaleString()}
+                              当 {alert.symbol || 'Unknown'} {alert.condition || '='} ${alert.price?.toLocaleString() || '0'}
                             </p>
                             {(!hasEmail || !emailAlerts) && (
                               <p className="text-xs text-yellow-500 dark:text-yellow-400 mt-1">
@@ -362,27 +421,28 @@ const AiMarket = () => {
                             <input 
                               type="checkbox" 
                               className="sr-only peer"
-                              checked={alert.isEnabled && emailAlerts && hasEmail}
+                              checked={(alert.isActive || alert.is_enabled) && emailAlerts && hasEmail}
                               onChange={() => {
                                 if (!hasEmail) {
-                                  alert('请先在设置页面绑定邮箱');
-                                  navigate('/settings');
+                                  showMessage('请先在设置页面绑定邮箱', 'error');
+                                  setTimeout(() => navigate('/settings'), 1000);
                                   return;
                                 }
                                 if (!emailAlerts) {
-                                  alert('请先在设置页面开启邮件提醒功能');
-                                  navigate('/settings');
+                                  showMessage('请先在设置页面开启邮件提醒功能', 'error');
+                                  setTimeout(() => navigate('/settings'), 1000);
                                   return;
                                 }
                                 handleAlertToggle(alert.id);
                               }}
-                              disabled={!hasEmail || !emailAlerts}
+                              disabled={!hasEmail || !emailAlerts || isLoading}
                             />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
                           </label>
                           <button 
                             className="text-slate-400 hover:text-red-500 transition-colors"
                             onClick={() => handleDeleteAlert(alert.id)}
+                            disabled={isLoading}
                           >
                             <span className="material-symbols-outlined">delete</span>
                           </button>

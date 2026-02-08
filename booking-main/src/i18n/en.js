@@ -12,6 +12,13 @@ export const en = {
   switchAccount: 'Switch Account',
   activeMainAccount: 'Active: Main Binance Account',
   addNewAccount: 'Add New Account',
+  accounts: 'Accounts',
+  accountName: 'Account Name',
+  platform: 'Platform',
+  active: 'Active',
+  noAccounts: 'No accounts yet',
+  addFirstAccount: 'Add your first account to get started',
+  confirmDeleteAccount: 'Are you sure you want to delete this account?',
   
   // AI & Integrations Section
   aiIntegrations: 'AI & Integrations',

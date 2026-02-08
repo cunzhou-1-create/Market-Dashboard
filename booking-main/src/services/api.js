@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 // 创建axios实例
 const apiClient = axios.create({
@@ -26,12 +26,63 @@ apiClient.interceptors.request.use(
   }
 );
 
-// 响应拦截器 - 统一处理错误
+// 添加token刷新逻辑
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+// 响应拦截器 - 统一处理错误和token刷新
 apiClient.interceptors.response.use(
   (response) => {
     return response.data;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // 处理401错误（token过期）
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // 正在刷新token，将请求加入队列
+        return new Promise((resolve) => {
+          refreshSubscribers.push((token) => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            resolve(apiClient(originalRequest));
+          });
+        });
+      }
+      
+      originalRequest._retry = true;
+      isRefreshing = true;
+      
+      try {
+        // 调用刷新token接口
+        const response = await apiClient.post('/auth/refresh');
+        const newToken = response.access_token;
+        
+        // 存储新token
+        localStorage.setItem('token', newToken);
+        
+        // 更新请求头
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        
+        // 执行队列中的请求
+        refreshSubscribers.forEach((callback) => callback(newToken));
+        refreshSubscribers = [];
+        
+        // 重试原始请求
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // 刷新token失败，跳转到登录页
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+    
     // 统一错误处理
     let errorMessage = '请求失败，请稍后重试';
     
@@ -48,7 +99,10 @@ apiClient.interceptors.response.use(
           // 清除token，跳转到登录页
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          // 这里可以添加跳转到登录页的逻辑
+          // 跳转到登录页
+          if (window.location.pathname !== '/auth') {
+            window.location.href = '/auth';
+          }
           break;
         case 403:
           errorMessage = '权限不足';
@@ -112,14 +166,19 @@ const marketAPI = {
     return apiClient.get('/market', { params: { skip, limit } });
   },
   
+  // 获取现货市场数据
+  getSpotMarketData: (skip = 0, limit = 100) => {
+    return apiClient.get('/market', { params: { skip, limit } });
+  },
+  
   // 获取单个币种数据
   getSymbolDetail: (symbol) => {
-    return apiClient.get(`/market/${symbol}`);
+    return apiClient.get('/market/symbol', { params: { symbol } });
   },
   
   // 获取技术指标
   getTechnicalIndicators: (symbol) => {
-    return apiClient.get(`/market/technical/${symbol}`);
+    return apiClient.get('/market/technical', { params: { symbol } });
   },
   
   // 获取观察列表
@@ -135,6 +194,16 @@ const marketAPI = {
   // 从观察列表移除
   removeFromWatchlist: (symbolId) => {
     return apiClient.delete(`/market/watchlist/remove/${symbolId}`);
+  },
+  
+  // 获取期货市场数据列表
+  getFuturesMarketList: (skip = 0, limit = 100) => {
+    return apiClient.get('/market/futures', { params: { skip, limit } });
+  },
+  
+  // 保存AI订阅设置
+  saveAiSubscriptionSettings: (settingsData) => {
+    return apiClient.post('/market/ai-subscription/settings', settingsData);
   },
 };
 
@@ -200,12 +269,208 @@ const alertsAPI = {
   },
 };
 
+// 交易相关API
+const tradeAPI = {
+  // 获取交易历史记录
+  getTradeHistory: () => {
+    return apiClient.get('/trade/history');
+  },
+  
+  // 执行模拟交易
+  executeTrade: (tradeData) => {
+    return apiClient.post('/trade/create', tradeData);
+  },
+  
+  // 获取账户信息
+  getAccountInfo: () => {
+    return apiClient.get('/trade/account');
+  },
+  
+  // 获取AI交易信号列表
+  getAiTradeSignals: () => {
+    return apiClient.get('/trade/ai/signals');
+  },
+  
+  // 获取AI交易调度器状态
+  getAiSchedulerStatus: () => {
+    return apiClient.get('/trade/ai/scheduler/status');
+  },
+  
+  // 启动AI交易调度器
+  startAiScheduler: () => {
+    return apiClient.post('/trade/ai/scheduler/start');
+  },
+  
+  // 停止AI交易调度器
+  stopAiScheduler: () => {
+    return apiClient.post('/trade/ai/scheduler/stop');
+  },
+  
+  // 获取市场分析
+  getMarketAnalysis: () => {
+    return apiClient.get('/trade/ai/market-analysis');
+  },
+  
+  // 手动触发AI交易
+  triggerAiTrade: () => {
+    return apiClient.post('/trade/ai/trigger');
+  },
+};
+
+// 链上事件相关API
+const onChainAPI = {
+  // 获取链上事件列表
+  getEvents: (skip = 0, limit = 100, chain = null, event_type = null) => {
+    return apiClient.get('/on-chain', { params: { skip, limit, chain, event_type } });
+  },
+  
+  // 获取链上事件详情
+  getEventDetail: (eventId) => {
+    return apiClient.get(`/on-chain/${eventId}`);
+  },
+  
+  // 获取支持的区块链列表
+  getSupportedChains: () => {
+    return apiClient.get('/on-chain/chains/list');
+  },
+  
+  // 获取链上事件统计
+  getStats: () => {
+    return apiClient.get('/on-chain/stats/summary');
+  },
+};
+
+// 任务相关API
+const tasksAPI = {
+  // 获取任务列表
+  getTasks: (skip = 0, limit = 100, status = null, priority = null) => {
+    return apiClient.get('/tasks', { params: { skip, limit, status_filter: status, priority } });
+  },
+  
+  // 获取任务详情
+  getTaskDetail: (taskId) => {
+    return apiClient.get(`/tasks/${taskId}`);
+  },
+  
+  // 创建任务
+  createTask: (taskData) => {
+    return apiClient.post('/tasks', taskData);
+  },
+  
+  // 更新任务
+  updateTask: (taskId, taskData) => {
+    return apiClient.put(`/tasks/${taskId}`, taskData);
+  },
+  
+  // 删除任务
+  deleteTask: (taskId) => {
+    return apiClient.delete(`/tasks/${taskId}`);
+  },
+  
+  // 获取任务统计
+  getStats: () => {
+    return apiClient.get('/tasks/stats/summary');
+  },
+  
+  // 创建链上事件提醒
+  createChainEventAlert: (alertData) => {
+    return apiClient.post('/tasks/chain-event-alerts', alertData);
+  },
+  
+  // 获取链上事件提醒列表
+  getChainEventAlerts: (skip = 0, limit = 100, status = null) => {
+    return apiClient.get('/tasks/chain-event-alerts', { params: { skip, limit, status } });
+  },
+  
+  // 更新链上事件提醒
+  updateChainEventAlert: (alertId, alertData) => {
+    return apiClient.put(`/tasks/chain-event-alerts/${alertId}`, alertData);
+  },
+  
+  // 删除链上事件提醒
+  deleteChainEventAlert: (alertId) => {
+    return apiClient.delete(`/tasks/chain-event-alerts/${alertId}`);
+  },
+  
+  // 切换链上事件提醒状态
+  toggleChainEventAlert: (alertId) => {
+    return apiClient.put(`/tasks/chain-event-alerts/${alertId}/toggle`);
+  },
+};
+
+// 设置相关API
+const settingsAPI = {
+  // 获取用户设置
+  getSettings: () => {
+    return apiClient.get('/settings');
+  },
+  
+  // 更新用户设置
+  updateSettings: (settingsData) => {
+    return apiClient.put('/settings', settingsData);
+  },
+  
+  // 更新邮件通知设置
+  updateEmailNotifications: (notificationData) => {
+    return apiClient.put('/settings/email-notifications', notificationData);
+  },
+  
+  // 获取通知渠道配置
+  getNotificationChannels: () => {
+    return apiClient.get('/settings/notification-channels');
+  },
+  
+  // 更新通知渠道配置
+  updateNotificationChannels: (channelsData) => {
+    return apiClient.put('/settings/notification-channels', channelsData);
+  },
+  
+  // 测试Telegram通知
+  testTelegramNotification: (testData) => {
+    return apiClient.post('/settings/notification-channels/telegram/test', testData);
+  },
+  
+  // 测试Webhook通知
+  testWebhookNotification: (testData) => {
+    return apiClient.post('/settings/notification-channels/webhook/test', testData);
+  },
+  
+  // 测试邮件通知
+  testEmailNotification: (testData) => {
+    return apiClient.post('/settings/notification-channels/email/test', testData);
+  },
+  
+  // 获取API密钥列表
+  getApiKeys: () => {
+    return apiClient.get('/settings/api-keys');
+  },
+  
+  // 添加API密钥
+  addApiKey: (apiKeyData) => {
+    return apiClient.post('/settings/api-keys', apiKeyData);
+  },
+  
+  // 删除API密钥
+  deleteApiKey: (apiKeyId) => {
+    return apiClient.delete(`/settings/api-keys/${apiKeyId}`);
+  },
+  
+  // 验证API密钥
+  verifyApiKey: (apiKeyData) => {
+    return apiClient.post('/settings/api-keys/verify', apiKeyData);
+  },
+};
+
 // 导出所有API
 const api = {
   auth: authAPI,
   market: marketAPI,
   user: userAPI,
   alerts: alertsAPI,
+  trade: tradeAPI,
+  onChain: onChainAPI,
+  tasks: tasksAPI,
+  settings: settingsAPI,
 };
 
 export default api;

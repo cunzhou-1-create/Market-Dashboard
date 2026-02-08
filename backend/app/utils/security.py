@@ -1,21 +1,20 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from app.config import settings
+import hashlib
 
-# 密码加密上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# 密码加密上下文 - 使用简单的哈希函数，避免bcrypt的密码长度限制
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return get_password_hash(plain_password) == hashed_password
 
 
 def get_password_hash(password: str) -> str:
     """获取密码哈希值"""
-    return pwd_context.hash(password)
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -42,9 +41,9 @@ def verify_token(token: str) -> Optional[dict]:
 
 def hash_api_key(api_key: str) -> str:
     """哈希API密钥"""
-    return pwd_context.hash(api_key)
+    return hashlib.sha256(api_key.encode()).hexdigest()
 
 
 def verify_api_key(plain_api_key: str, hashed_api_key: str) -> bool:
     """验证API密钥"""
-    return pwd_context.verify(plain_api_key, hashed_api_key)
+    return hash_api_key(plain_api_key) == hashed_api_key
