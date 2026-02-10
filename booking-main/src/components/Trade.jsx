@@ -213,6 +213,39 @@ const Trade = () => {
   // 时间范围选择状态
   const [timeRange, setTimeRange] = useState('7d'); // 7d, 30d, 90d, 1y
 
+  // 模拟交易员管理相关状态
+  const [simulatedTraders, setSimulatedTraders] = useState([]);
+  const [isTradersLoading, setIsTradersLoading] = useState(false);
+  const [isCreatingTrader, setIsCreatingTrader] = useState(false);
+  const [isEditingTrader, setIsEditingTrader] = useState(false);
+  const [editingTraderId, setEditingTraderId] = useState(null);
+  const [newSimulatedTrader, setNewSimulatedTrader] = useState({
+    name: '',
+    strategy: '',
+    symbol: 'BTC/USDT',
+    refresh_interval: 30,
+    initial_balance: 10000.0,
+    settings: {}
+  });
+
+  // 模拟交易设置相关状态
+  const [simulationSettings, setSimulationSettings] = useState({
+    global_enabled: true,
+    open_signal_notification: true,
+    close_signal_notification: true,
+    default_refresh_interval: 30
+  });
+  const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // 模拟交易报告相关状态
+  const [simulationReports, setSimulationReports] = useState([]);
+  const [isReportsLoading, setIsReportsLoading] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedTraderId, setSelectedTraderId] = useState(null);
+  const [reportPeriod, setReportPeriod] = useState('7d');
+
   // 加载交易记录
   const loadTradeHistory = async () => {
     setIsLoading(true);
@@ -233,6 +266,216 @@ const Trade = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 加载模拟交易员列表
+  const loadSimulatedTraders = async () => {
+    setIsTradersLoading(true);
+    setError(null);
+    
+    try {
+      const traders = await api.trade.getSimulatedTraders();
+      if (traders && Array.isArray(traders)) {
+        setSimulatedTraders(traders);
+      }
+    } catch (err) {
+      setError('加载模拟交易员列表失败: ' + (err.message || '未知错误'));
+      console.error('加载模拟交易员列表失败:', err);
+    } finally {
+      setIsTradersLoading(false);
+    }
+  };
+
+  // 创建模拟交易员
+  const createSimulatedTrader = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      // 验证表单
+      if (!newSimulatedTrader.name) {
+        throw new Error('请填写交易员名称');
+      }
+      if (!newSimulatedTrader.strategy) {
+        throw new Error('请填写交易策略');
+      }
+      if (!newSimulatedTrader.symbol) {
+        throw new Error('请选择交易币对');
+      }
+      if (newSimulatedTrader.refresh_interval <= 0) {
+        throw new Error('刷新频率必须大于0');
+      }
+      if (newSimulatedTrader.initial_balance <= 0) {
+        throw new Error('初始资金必须大于0');
+      }
+      
+      // 调用API创建模拟交易员
+      const result = await api.trade.createSimulatedTrader(newSimulatedTrader);
+      
+      if (result) {
+        setMessage('模拟交易员创建成功');
+        // 重置表单
+        setNewSimulatedTrader({
+          name: '',
+          strategy: '',
+          symbol: 'BTC/USDT',
+          refresh_interval: 30,
+          initial_balance: 10000.0,
+          settings: {}
+        });
+        // 重新加载模拟交易员列表
+        await loadSimulatedTraders();
+        // 关闭创建模态框
+        setIsCreatingTrader(false);
+      }
+    } catch (err) {
+      setError('创建模拟交易员失败: ' + (err.message || '未知错误'));
+      console.error('创建模拟交易员失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 运行模拟交易员
+  const runSimulatedTrader = async (traderId) => {
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const result = await api.trade.runTrader(traderId);
+      
+      if (result.success) {
+        setMessage(`模拟交易员运行成功: ${result.message}`);
+        // 重新加载模拟交易员列表
+        await loadSimulatedTraders();
+      } else {
+        setError(`运行模拟交易员失败: ${result.message}`);
+      }
+    } catch (err) {
+      setError('运行模拟交易员失败: ' + (err.message || '未知错误'));
+      console.error('运行模拟交易员失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 删除模拟交易员
+  const deleteSimulatedTrader = async (traderId) => {
+    if (!window.confirm('确定要删除这个模拟交易员吗？')) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const result = await api.trade.deleteSimulatedTrader(traderId);
+      
+      if (result) {
+        setMessage('模拟交易员删除成功');
+        // 重新加载模拟交易员列表
+        await loadSimulatedTraders();
+      }
+    } catch (err) {
+      setError('删除模拟交易员失败: ' + (err.message || '未知错误'));
+      console.error('删除模拟交易员失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 加载模拟交易设置
+  const loadSimulationSettings = async () => {
+    setIsSettingsLoading(true);
+    setError(null);
+    
+    try {
+      const settings = await api.trade.getSimulationSettings();
+      if (settings) {
+        setSimulationSettings(settings);
+      }
+    } catch (err) {
+      setError('加载模拟交易设置失败: ' + (err.message || '未知错误'));
+      console.error('加载模拟交易设置失败:', err);
+    } finally {
+      setIsSettingsLoading(false);
+    }
+  };
+
+  // 更新模拟交易设置
+  const updateSimulationSettings = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const result = await api.trade.updateSimulationSettings(simulationSettings);
+      
+      if (result) {
+        setMessage('模拟交易设置更新成功');
+        // 关闭设置模态框
+        setIsSettingsModalOpen(false);
+      }
+    } catch (err) {
+      setError('更新模拟交易设置失败: ' + (err.message || '未知错误'));
+      console.error('更新模拟交易设置失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 加载模拟交易报告
+  const loadSimulationReports = async (traderId = null) => {
+    setIsReportsLoading(true);
+    setError(null);
+    
+    try {
+      const reports = await api.trade.getSimulationReports(traderId);
+      if (reports && Array.isArray(reports)) {
+        setSimulationReports(reports);
+      }
+    } catch (err) {
+      setError('加载模拟交易报告失败: ' + (err.message || '未知错误'));
+      console.error('加载模拟交易报告失败:', err);
+    } finally {
+      setIsReportsLoading(false);
+    }
+  };
+
+  // 生成模拟交易报告
+  const generateSimulationReport = async (traderId, period) => {
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const report = await api.trade.generateReport(traderId, period);
+      
+      if (report) {
+        setMessage('模拟交易报告生成成功');
+        // 重新加载报告列表
+        await loadSimulationReports(traderId);
+        // 打开报告详情模态框
+        setSelectedReport(report);
+        setIsReportModalOpen(true);
+      }
+    } catch (err) {
+      setError('生成模拟交易报告失败: ' + (err.message || '未知错误'));
+      console.error('生成模拟交易报告失败:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 查看报告详情
+  const viewReportDetails = (report) => {
+    setSelectedReport(report);
+    setIsReportModalOpen(true);
   };
 
   // 执行模拟交易
@@ -323,6 +566,8 @@ const Trade = () => {
       await loadAiSchedulerStatus();
       await loadAiTradeSignals();
       await loadAiTraders();
+      await loadSimulatedTraders();
+      await loadSimulationSettings();
     };
 
     loadInitialData();
@@ -424,6 +669,12 @@ const Trade = () => {
             onClick={() => setActiveTab('simulation')}
           >
             模拟交易
+          </button>
+          <button
+            className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${activeTab === 'simulatedTraders' ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            onClick={() => setActiveTab('simulatedTraders')}
+          >
+            模拟交易员管理
           </button>
         </div>
 
@@ -753,6 +1004,468 @@ const Trade = () => {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 模拟交易员管理 */}
+        {activeTab === 'simulatedTraders' && (
+          <div className="space-y-6">
+            {/* 标题和操作按钮 */}
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">模拟交易员管理</h2>
+              <div className="flex gap-2">
+                <button
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                  onClick={() => setIsSettingsModalOpen(true)}
+                >
+                  模拟交易设置
+                </button>
+                <button
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors"
+                  onClick={() => setIsCreatingTrader(true)}
+                >
+                  创建模拟交易员
+                </button>
+              </div>
+            </div>
+
+            {/* 模拟交易员列表 */}
+            <div className="space-y-4">
+              {isTradersLoading ? (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mr-2"></div>
+                  <p className="text-slate-500 dark:text-slate-400">加载中...</p>
+                </div>
+              ) : simulatedTraders.length > 0 ? (
+                simulatedTraders.map((trader) => (
+                  <div key={trader.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-bold text-lg">{trader.name}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${trader.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-400'}`}>
+                            {trader.is_active ? '运行中' : '已停止'}
+                          </span>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">策略: {trader.strategy}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">交易币对</p>
+                            <p className="font-bold">{trader.symbol}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">刷新频率</p>
+                            <p className="font-bold">{trader.refresh_interval}分钟</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">初始资金</p>
+                            <p className="font-bold">{trader.initial_balance} USDT</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">当前资金</p>
+                            <p className="font-bold">{trader.current_balance.toFixed(2)} USDT</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                          onClick={() => runSimulatedTrader(trader.id)}
+                        >
+                          运行
+                        </button>
+                        <button
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                          onClick={() => {
+                            setEditingTraderId(trader.id);
+                            setIsEditingTrader(true);
+                          }}
+                        >
+                          编辑
+                        </button>
+                        <button
+                          className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+                          onClick={() => deleteSimulatedTrader(trader.id)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
+                  <p className="text-slate-500 dark:text-slate-400">暂无模拟交易员，请创建一个新的模拟交易员</p>
+                </div>
+              )}
+            </div>
+
+            {/* 创建模拟交易员表单 */}
+            {isCreatingTrader && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-lg">创建模拟交易员</h3>
+                    <button
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      onClick={() => setIsCreatingTrader(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <form onSubmit={createSimulatedTrader} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">交易员名称</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        placeholder="输入交易员名称"
+                        value={newSimulatedTrader.name}
+                        onChange={(e) => setNewSimulatedTrader({...newSimulatedTrader, name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">交易策略</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        placeholder="输入交易策略"
+                        value={newSimulatedTrader.strategy}
+                        onChange={(e) => setNewSimulatedTrader({...newSimulatedTrader, strategy: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">交易币对</label>
+                      <select
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        value={newSimulatedTrader.symbol}
+                        onChange={(e) => setNewSimulatedTrader({...newSimulatedTrader, symbol: e.target.value})}
+                      >
+                        <option value="BTC/USDT">BTC/USDT</option>
+                        <option value="ETH/USDT">ETH/USDT</option>
+                        <option value="SOL/USDT">SOL/USDT</option>
+                        <option value="ADA/USDT">ADA/USDT</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">刷新频率 (分钟)</label>
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                          placeholder="30"
+                          value={newSimulatedTrader.refresh_interval}
+                          onChange={(e) => setNewSimulatedTrader({...newSimulatedTrader, refresh_interval: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">初始资金 (USDT)</label>
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                          placeholder="10000"
+                          value={newSimulatedTrader.initial_balance}
+                          onChange={(e) => setNewSimulatedTrader({...newSimulatedTrader, initial_balance: parseFloat(e.target.value) || 0})}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white font-semibold rounded-lg transition-colors"
+                        onClick={() => setIsCreatingTrader(false)}
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center justify-center">
+                            <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span>
+                            创建中...
+                          </div>
+                        ) : (
+                          '创建'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* 模拟交易设置模态框 */}
+            {isSettingsModalOpen && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-lg">模拟交易设置</h3>
+                    <button
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      onClick={() => setIsSettingsModalOpen(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <form onSubmit={updateSimulationSettings} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        checked={simulationSettings.global_enabled}
+                        onChange={(e) => setSimulationSettings({...simulationSettings, global_enabled: e.target.checked})}
+                      />
+                      <label className="text-sm font-medium">全局模拟交易开关</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        checked={simulationSettings.open_signal_notification}
+                        onChange={(e) => setSimulationSettings({...simulationSettings, open_signal_notification: e.target.checked})}
+                      />
+                      <label className="text-sm font-medium">开仓信号通知开关</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        checked={simulationSettings.close_signal_notification}
+                        onChange={(e) => setSimulationSettings({...simulationSettings, close_signal_notification: e.target.checked})}
+                      />
+                      <label className="text-sm font-medium">平仓信号通知开关</label>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">默认刷新频率 (分钟)</label>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        placeholder="30"
+                        value={simulationSettings.default_refresh_interval}
+                        onChange={(e) => setSimulationSettings({...simulationSettings, default_refresh_interval: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white font-semibold rounded-lg transition-colors"
+                        onClick={() => setIsSettingsModalOpen(false)}
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center justify-center">
+                            <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></span>
+                            保存中...
+                          </div>
+                        ) : (
+                          '保存设置'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* 模拟交易报告 */}
+            <div className="mt-8">
+              <h3 className="font-semibold text-lg mb-4">模拟交易报告</h3>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+                  <div className="flex gap-2">
+                    <select
+                      className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                      value={selectedTraderId || ''}
+                      onChange={(e) => {
+                        const traderId = e.target.value ? parseInt(e.target.value) : null;
+                        setSelectedTraderId(traderId);
+                        loadSimulationReports(traderId);
+                      }}
+                    >
+                      <option value="">所有交易员</option>
+                      {simulatedTraders.map((trader) => (
+                        <option key={trader.id} value={trader.id}>
+                          {trader.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                      value={reportPeriod}
+                      onChange={(e) => setReportPeriod(e.target.value)}
+                    >
+                      <option value="7d">7天</option>
+                      <option value="30d">30天</option>
+                      <option value="90d">90天</option>
+                    </select>
+                  </div>
+                  <button
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                    onClick={() => {
+                      if (selectedTraderId) {
+                        generateSimulationReport(selectedTraderId, reportPeriod);
+                      } else {
+                        alert('请选择一个交易员生成报告');
+                      }
+                    }}
+                  >
+                    生成报告
+                  </button>
+                </div>
+                
+                {/* 报告列表 */}
+                <div className="space-y-4">
+                  {isReportsLoading ? (
+                    <div className="text-center py-4">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mr-2"></div>
+                      <p className="text-slate-500 dark:text-slate-400">加载中...</p>
+                    </div>
+                  ) : simulationReports.length > 0 ? (
+                    simulationReports.map((report) => (
+                      <div key={report.id} className="p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                        onClick={() => viewReportDetails(report)}>
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                          <div>
+                            <h4 className="font-bold">{report.period} 报告</h4>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">
+                              交易员: {simulatedTraders.find(t => t.id === report.simulated_trader_id)?.name || '未知'}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
+                              总收益: {report.total_profit.toFixed(2)} USDT
+                            </div>
+                            <p className="text-slate-400 dark:text-slate-500 text-xs">
+                              {new Date(report.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">期初资金</p>
+                            <p className="font-bold">{report.start_balance.toFixed(2)} USDT</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">期末资金</p>
+                            <p className="font-bold">{report.end_balance.toFixed(2)} USDT</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">交易次数</p>
+                            <p className="font-bold">{report.total_trades}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">胜率</p>
+                            <p className="font-bold">{report.win_rate.toFixed(2)}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-slate-500 dark:text-slate-400">暂无模拟交易报告</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 报告详情模态框 */}
+            {isReportModalOpen && selectedReport && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-lg">模拟交易报告详情</h3>
+                    <button
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      onClick={() => setIsReportModalOpen(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">报告周期</p>
+                        <p className="font-bold">{selectedReport.period}</p>
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">交易员</p>
+                        <p className="font-bold">{simulatedTraders.find(t => t.id === selectedReport.simulated_trader_id)?.name || '未知'}</p>
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">生成时间</p>
+                        <p className="font-bold">{new Date(selectedReport.created_at).toLocaleString()}</p>
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">最大回撤</p>
+                        <p className="font-bold">{selectedReport.max_drawdown.toFixed(2)}%</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 p-3 rounded-lg">
+                        <p className="text-xs">期初资金</p>
+                        <p className="font-bold">{selectedReport.start_balance.toFixed(2)} USDT</p>
+                      </div>
+                      <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 p-3 rounded-lg">
+                        <p className="text-xs">期末资金</p>
+                        <p className="font-bold">{selectedReport.end_balance.toFixed(2)} USDT</p>
+                      </div>
+                      <div className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 p-3 rounded-lg">
+                        <p className="text-xs">总收益</p>
+                        <p className="font-bold">{selectedReport.total_profit.toFixed(2)} USDT</p>
+                      </div>
+                      <div className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 p-3 rounded-lg">
+                        <p className="text-xs">交易次数</p>
+                        <p className="font-bold">{selectedReport.total_trades}</p>
+                      </div>
+                    </div>
+                    
+                    {selectedReport.report_data?.balance_curve && (
+                      <div className="bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">资金变动曲线</h4>
+                        <Chart data={selectedReport.report_data.balance_curve.map(item => item.balance)} />
+                      </div>
+                    )}
+                    
+                    {selectedReport.report_data?.trades && selectedReport.report_data.trades.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3">交易记录</h4>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {selectedReport.report_data.trades.map((trade, index) => (
+                            <div key={index} className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h5 className="font-bold">{trade.symbol}</h5>
+                                  <p className="text-sm">
+                                    {trade.side === 'buy' ? '买入' : '卖出'} • {trade.price} USDT • {trade.quantity} 币
+                                  </p>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${trade.side === 'buy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                  {trade.side === 'buy' ? '买入' : '卖出'}
+                                </span>
+                              </div>
+                              <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">
+                                {new Date(trade.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

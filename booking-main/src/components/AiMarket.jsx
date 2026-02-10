@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Navigation from './Navigation';
-import { useUser } from '../context/UserContext';
+import { useApp } from '../context/AppContext';
 import { useMarket } from '../context/MarketContext';
 import api from '../services/api';
 
@@ -12,7 +12,7 @@ import api from '../services/api';
  */
 const AiMarket = () => {
   const navigate = useNavigate();
-  const { user, emailAlerts } = useUser();
+  const { user, emailAlerts } = useApp();
   const { priceAlerts, createPriceAlert, deletePriceAlert, togglePriceAlert, isLoading, error, fetchPriceAlerts } = useMarket();
   
   // AI行情订阅状态

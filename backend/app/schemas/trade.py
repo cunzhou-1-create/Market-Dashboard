@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 
@@ -87,6 +87,87 @@ class AITradeSignalResponse(AITradeSignalBase):
     executed_trade_id: Optional[int]
     created_at: datetime
     executed_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+
+class SimulatedTraderBase(BaseModel):
+    """模拟交易员基础模型"""
+    name: str
+    strategy: str
+    symbol: str
+    refresh_interval: int = 30
+    initial_balance: float = 10000.0
+    settings: Optional[Dict[str, Any]] = None
+
+
+class SimulatedTraderCreate(SimulatedTraderBase):
+    """模拟交易员创建模型"""
+    pass
+
+
+class SimulatedTraderUpdate(BaseModel):
+    """模拟交易员更新模型"""
+    name: Optional[str] = None
+    strategy: Optional[str] = None
+    symbol: Optional[str] = None
+    refresh_interval: Optional[int] = None
+    is_active: Optional[bool] = None
+    settings: Optional[Dict[str, Any]] = None
+
+
+class SimulatedTraderResponse(SimulatedTraderBase):
+    """模拟交易员响应模型"""
+    id: int
+    user_id: int
+    current_balance: float
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SimulationSettingBase(BaseModel):
+    """模拟交易设置基础模型"""
+    global_enabled: bool = True
+    open_signal_notification: bool = True
+    close_signal_notification: bool = True
+    default_refresh_interval: int = 30
+
+
+class SimulationSettingUpdate(SimulationSettingBase):
+    """模拟交易设置更新模型"""
+    pass
+
+
+class SimulationSettingResponse(SimulationSettingBase):
+    """模拟交易设置响应模型"""
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SimulationReportResponse(BaseModel):
+    """模拟交易报告响应模型"""
+    id: int
+    user_id: int
+    simulated_trader_id: int
+    period: str
+    start_balance: float
+    end_balance: float
+    total_profit: float
+    total_trades: int
+    win_rate: float
+    max_drawdown: float
+    report_data: Optional[Dict[str, Any]] = None
+    created_at: datetime
     
     class Config:
         from_attributes = True

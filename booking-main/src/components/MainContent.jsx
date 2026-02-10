@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMarket } from '../context/MarketContext';
+import api from '../services/api';
 
 /**
  * 主内容组件
@@ -12,6 +13,11 @@ const MainContent = () => {
   
   // 选中的菜单状态
   const [selectedMenu, setSelectedMenu] = useState('real-time');
+  
+  // 24小时涨跌幅图表数据
+  const [chartData, setChartData] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [chartError, setChartError] = useState(null);
   
   // 缓存市场数据计算结果
   const btcData = useMemo(() => marketData.find(item => item.symbol === 'BTC/USDT'), [marketData]);
@@ -26,6 +32,44 @@ const MainContent = () => {
   const handleSymbolClick = (symbol) => {
     navigate('/detail', { state: { symbol } });
   };
+  
+  /**
+   * 获取24小时涨跌幅图表数据
+   */
+  const fetchChartData = async () => {
+    try {
+      setChartError(null);
+      // 获取BTC/USDT的1小时K线数据，最近24小时
+      const klinesData = await api.market.getKlinesData('BTC/USDT', '1h', 24);
+      
+      // 计算每小时的涨跌幅
+      const hourlyChanges = klinesData.map((kline, index) => {
+        if (index === 0) {
+          return 0; // 第一个数据点涨跌幅为0
+        }
+        const previousClose = klinesData[index - 1].close;
+        const currentClose = kline.close;
+        const changePercent = ((currentClose - previousClose) / previousClose) * 100;
+        return changePercent;
+      });
+      
+      setChartData(hourlyChanges);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('获取图表数据失败:', error);
+      setChartError('获取图表数据失败，请稍后重试');
+      // 使用模拟数据作为 fallback
+      setChartData([3.0, 5.0, 7.0, -4.0, -6.0, -3.0, 2.0, 4.0, 6.0, 8.0, 10.0, 7.0, -2.0, -4.0, -6.0, -3.0, 5.0, 7.0, 4.0, -2.0, 3.0, 5.0, 7.0, 9.0]);
+      setLastUpdated(new Date());
+    }
+  };
+  
+  // 组件挂载时获取数据，每30秒刷新一次
+  useEffect(() => {
+    fetchChartData();
+    const interval = setInterval(fetchChartData, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   return (
     <main className="max-w-md mx-auto">
@@ -195,61 +239,88 @@ const MainContent = () => {
           <div className="px-4 py-4">
             <h3 className="text-lg font-bold tracking-tight pb-4">24小时涨跌幅</h3>
             <div className="w-full bg-slate-100 dark:bg-[#1c2630] rounded-xl p-4">
+              {chartError && (
+                <div className="text-sm text-rose-500 mb-4">{chartError}</div>
+              )}
+              
+              {/* 24h 总涨跌幅 */}
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-2xl font-black">+2.4%</span>
-                <span className="text-xs text-slate-500 font-medium">24h 总涨跌幅</span>
+                {chartData.length > 0 ? (
+                  <>
+                    <span className={`text-2xl font-black ${chartData[chartData.length - 1] >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {chartData[chartData.length - 1] >= 0 ? '+' : ''}{chartData[chartData.length - 1].toFixed(2)}%
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">24h 总涨跌幅</span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-black">加载中...</span>
+                )}
               </div>
-              {/* 24小时涨跌幅数据模拟 */}
-              <div className="flex items-end gap-1 h-24">
-                {/* 00:00 */}
-                <div className="flex-1 bg-emerald-500/30 rounded-t h-[30%]"></div>
-                {/* 01:00 */}
-                <div className="flex-1 bg-emerald-500/50 rounded-t h-[50%]"></div>
-                {/* 02:00 */}
-                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
-                {/* 03:00 */}
-                <div className="flex-1 bg-rose-500/40 rounded-t h-[40%]"></div>
-                {/* 04:00 */}
-                <div className="flex-1 bg-rose-500/60 rounded-t h-[60%]"></div>
-                {/* 05:00 */}
-                <div className="flex-1 bg-rose-500/30 rounded-t h-[30%]"></div>
-                {/* 06:00 */}
-                <div className="flex-1 bg-emerald-500/20 rounded-t h-[20%]"></div>
-                {/* 07:00 */}
-                <div className="flex-1 bg-emerald-500/40 rounded-t h-[40%]"></div>
-                {/* 08:00 */}
-                <div className="flex-1 bg-emerald-500/60 rounded-t h-[60%]"></div>
-                {/* 09:00 */}
-                <div className="flex-1 bg-emerald-500/80 rounded-t h-[80%]"></div>
-                {/* 10:00 */}
-                <div className="flex-1 bg-emerald-500 rounded-t h-[100%]"></div>
-                {/* 11:00 */}
-                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
-                {/* 12:00 */}
-                <div className="flex-1 bg-rose-500/20 rounded-t h-[20%]"></div>
-                {/* 13:00 */}
-                <div className="flex-1 bg-rose-500/40 rounded-t h-[40%]"></div>
-                {/* 14:00 */}
-                <div className="flex-1 bg-rose-500/60 rounded-t h-[60%]"></div>
-                {/* 15:00 */}
-                <div className="flex-1 bg-rose-500/30 rounded-t h-[30%]"></div>
-                {/* 16:00 */}
-                <div className="flex-1 bg-emerald-500/50 rounded-t h-[50%]"></div>
-                {/* 17:00 */}
-                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
-                {/* 18:00 */}
-                <div className="flex-1 bg-emerald-500/40 rounded-t h-[40%]"></div>
-                {/* 19:00 */}
-                <div className="flex-1 bg-rose-500/20 rounded-t h-[20%]"></div>
-                {/* 20:00 */}
-                <div className="flex-1 bg-emerald-500/30 rounded-t h-[30%]"></div>
-                {/* 21:00 */}
-                <div className="flex-1 bg-emerald-500/50 rounded-t h-[50%]"></div>
-                {/* 22:00 */}
-                <div className="flex-1 bg-emerald-500/70 rounded-t h-[70%]"></div>
-                {/* 23:00 */}
-                <div className="flex-1 bg-emerald-500/90 rounded-t h-[90%]"></div>
-              </div>
+              
+              {/* 动态折线图 */}
+              {chartData.length > 0 && (
+                <div className="h-40 relative mb-4">
+                  <svg width="100%" height="100%" viewBox="0 0 400 160" className="w-full h-full">
+                    {/* 计算图表数据范围 */}
+                    {(() => {
+                      const min = Math.min(...chartData) * 1.2;
+                      const max = Math.max(...chartData) * 1.2;
+                      const range = max - min || 1;
+                      
+                      // 生成路径数据
+                      const pathData = chartData.map((value, index) => {
+                        const x = (index / (chartData.length - 1)) * 380 + 10;
+                        const y = 150 - ((value - min) / range) * 140;
+                        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+                      }).join(' ');
+                      
+                      // 生成数据点
+                      const dataPoints = chartData.map((value, index) => {
+                        const x = (index / (chartData.length - 1)) * 380 + 10;
+                        const y = 150 - ((value - min) / range) * 140;
+                        return (
+                          <circle
+                            key={index}
+                            cx={x}
+                            cy={y}
+                            r="3"
+                            fill={value >= 0 ? '#10b981' : '#ef4444'}
+                            className="transition-all hover:r-4"
+                          />
+                        );
+                      });
+                      
+                      return (
+                        <>
+                          {/* 网格线 */}
+                          <line x1="10" y1="10" x2="390" y2="10" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="2,2" />
+                          <line x1="10" y1="80" x2="390" y2="80" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="2,2" />
+                          <line x1="10" y1="150" x2="390" y2="150" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="2,2" />
+                          
+                          {/* 数据线 */}
+                          <path
+                            d={pathData}
+                            stroke={chartData[chartData.length - 1] >= 0 ? '#10b981' : '#ef4444'}
+                            strokeWidth="2"
+                            fill="none"
+                          />
+                          
+                          {/* 数据点 */}
+                          {dataPoints}
+                          
+                          {/* 区域填充 */}
+                          <path
+                            d={`${pathData} L 390 150 L 10 150 Z`}
+                            fill={chartData[chartData.length - 1] >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}
+                          />
+                        </>
+                      );
+                    })()}
+                  </svg>
+                </div>
+              )}
+              
+              {/* 时间轴 */}
               <div className="flex justify-between mt-2">
                 <span className="text-[10px] text-slate-500 font-bold">00:00</span>
                 <span className="text-[10px] text-slate-500 font-bold">06:00</span>
@@ -257,6 +328,15 @@ const MainContent = () => {
                 <span className="text-[10px] text-slate-500 font-bold">18:00</span>
                 <span className="text-[10px] text-slate-500 font-bold">23:59</span>
               </div>
+              
+              {/* 最后更新时间 */}
+              {lastUpdated && (
+                <div className="mt-3 text-right">
+                  <span className="text-xs text-slate-500">
+                    更新时间: {lastUpdated.getFullYear()}{lastUpdated.getMonth() + 1}{lastUpdated.getDate()}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           

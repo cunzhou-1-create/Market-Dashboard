@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from app.models.market import MarketData, Watchlist
-from app.utils.crypto import get_market_data, get_futures_data, get_symbol_data, calculate_technical_indicators
+from app.utils.crypto import get_market_data, get_futures_data, get_symbol_data, calculate_technical_indicators, get_klines_data
 
 
 class MarketService:
@@ -215,3 +215,8 @@ class MarketService:
         paginated_data = futures_data[skip:skip + limit]
         
         return paginated_data
+    
+    @staticmethod
+    def get_klines_data(symbol: str, interval: str = '30m', limit: int = 100) -> List[Dict]:
+        """获取K线数据"""
+        return get_klines_data(symbol, interval, limit)

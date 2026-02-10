@@ -1,8 +1,8 @@
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from app.models.trade import TradeRecord, ApiKey
+from app.models.trade import TradeRecord, ApiKey, SimulatedTrader, SimulationSetting
 from app.models.user import User
-from app.schemas.trade import TradeRecordCreate, ApiKeyCreate
+from app.schemas.trade import TradeRecordCreate, ApiKeyCreate, SimulatedTraderCreate, SimulatedTraderUpdate, SimulationSettingUpdate
 from app.utils.security import hash_api_key, verify_api_key
 import requests
 
@@ -219,3 +219,210 @@ class TradeService:
         db.commit()
         
         return True
+    
+    @staticmethod
+    def create_simulated_trader(db: Session, user_id: int, trader_data: SimulatedTraderCreate) -> SimulatedTrader:
+        """创建模拟交易员"""
+        # 创建模拟交易员
+        new_trader = SimulatedTrader(
+            user_id=user_id,
+            name=trader_data.name,
+            strategy=trader_data.strategy,
+            symbol=trader_data.symbol,
+            refresh_interval=trader_data.refresh_interval,
+            initial_balance=trader_data.initial_balance,
+            current_balance=trader_data.initial_balance,  # 初始当前余额等于初始资金
+            settings=trader_data.settings
+        )
+        
+        db.add(new_trader)
+        db.commit()
+        db.refresh(new_trader)
+        
+        return new_trader
+    
+    @staticmethod
+    def update_simulated_trader(db: Session, trader_id: int, user_id: int, trader_data: SimulatedTraderUpdate) -> Optional[SimulatedTrader]:
+        """更新模拟交易员"""
+        # 获取模拟交易员
+        trader = db.query(SimulatedTrader).filter(
+            SimulatedTrader.id == trader_id,
+            SimulatedTrader.user_id == user_id
+        ).first()
+        
+        if not trader:
+            return None
+        
+        # 更新字段
+        if trader_data.name is not None:
+            trader.name = trader_data.name
+        if trader_data.strategy is not None:
+            trader.strategy = trader_data.strategy
+        if trader_data.symbol is not None:
+            trader.symbol = trader_data.symbol
+        if trader_data.refresh_interval is not None:
+            trader.refresh_interval = trader_data.refresh_interval
+        if trader_data.is_active is not None:
+            trader.is_active = trader_data.is_active
+        if trader_data.settings is not None:
+            trader.settings = trader_data.settings
+        
+        db.commit()
+        db.refresh(trader)
+        
+        return trader
+    
+    @staticmethod
+    def delete_simulated_trader(db: Session, trader_id: int, user_id: int) -> bool:
+        """删除模拟交易员"""
+        # 获取模拟交易员
+        trader = db.query(SimulatedTrader).filter(
+            SimulatedTrader.id == trader_id,
+            SimulatedTrader.user_id == user_id
+        ).first()
+        
+        if not trader:
+            return False
+        
+        db.delete(trader)
+        db.commit()
+        
+        return True
+    
+    @staticmethod
+    def get_simulated_traders(db: Session, user_id: int) -> List[SimulatedTrader]:
+        """获取用户的模拟交易员列表"""
+        traders = db.query(SimulatedTrader).filter(
+            SimulatedTrader.user_id == user_id
+        ).all()
+        
+        return traders
+    
+    @staticmethod
+    def get_simulated_trader(db: Session, trader_id: int, user_id: int) -> Optional[SimulatedTrader]:
+        """获取单个模拟交易员"""
+        trader = db.query(SimulatedTrader).filter(
+            SimulatedTrader.id == trader_id,
+            SimulatedTrader.user_id == user_id
+        ).first()
+        
+        return trader
+    
+    @staticmethod
+    def get_simulation_settings(db: Session, user_id: int) -> SimulationSetting:
+        """获取用户的模拟交易设置"""
+        # 查询用户的模拟交易设置
+        settings = db.query(SimulationSetting).filter(
+            SimulationSetting.user_id == user_id
+        ).first()
+        
+        # 如果不存在，创建默认设置
+        if not settings:
+            settings = SimulationSetting(
+                user_id=user_id
+            )
+            db.add(settings)
+            db.commit()
+            db.refresh(settings)
+        
+        return settings
+    
+    @staticmethod
+    def update_simulation_settings(db: Session, user_id: int, settings_data: SimulationSettingUpdate) -> SimulationSetting:
+        """更新用户的模拟交易设置"""
+        # 获取用户的模拟交易设置
+        settings = db.query(SimulationSetting).filter(
+            SimulationSetting.user_id == user_id
+        ).first()
+        
+        # 如果不存在，创建新设置
+        if not settings:
+            settings = SimulationSetting(
+                user_id=user_id
+            )
+            db.add(settings)
+        
+        # 更新字段
+        settings.global_enabled = settings_data.global_enabled
+        settings.open_signal_notification = settings_data.open_signal_notification
+        settings.close_signal_notification = settings_data.close_signal_notification
+        settings.default_refresh_interval = settings_data.default_refresh_interval
+        
+        db.commit()
+        db.refresh(settings)
+        
+        return settings
+    
+    @staticmethod
+    def get_account_info(db: Session, user_id: int, simulated_trader_id: Optional[int] = None) -> Dict:
+        """获取账户信息，支持指定模拟交易员"""
+        # 构建查询条件
+        query = db.query(TradeRecord).filter(TradeRecord.user_id == user_id)
+        
+        # 如果指定了模拟交易员，添加过滤条件
+        if simulated_trader_id:
+            query = query.filter(TradeRecord.simulated_trader_id == simulated_trader_id)
+        
+        # 获取交易记录
+        trades = query.all()
+        
+        # 计算账户余额和持仓
+        total_balance = 10000.0  # 初始余额
+        available_balance = 10000.0
+        positions = {}
+        
+        # 如果指定了模拟交易员，使用交易员的初始资金
+        if simulated_trader_id:
+            trader = db.query(SimulatedTrader).filter(
+                SimulatedTrader.id == simulated_trader_id,
+                SimulatedTrader.user_id == user_id
+            ).first()
+            if trader:
+                total_balance = trader.initial_balance
+                available_balance = trader.initial_balance
+        
+        for trade in trades:
+            if trade.side == 'buy':
+                # 买入，减少可用余额
+                available_balance -= trade.total
+                # 更新持仓
+                if trade.symbol in positions:
+                    positions[trade.symbol]['quantity'] += trade.quantity
+                    positions[trade.symbol]['avg_price'] = (
+                        positions[trade.symbol]['avg_price'] * positions[trade.symbol]['quantity'] + 
+                        trade.price * trade.quantity
+                    ) / (positions[trade.symbol]['quantity'] + trade.quantity)
+                else:
+                    positions[trade.symbol] = {
+                        'quantity': trade.quantity,
+                        'avg_price': trade.price
+                    }
+            else:
+                # 卖出，增加可用余额
+                available_balance += trade.total
+                # 更新持仓
+                if trade.symbol in positions:
+                    positions[trade.symbol]['quantity'] -= trade.quantity
+                    if positions[trade.symbol]['quantity'] <= 0:
+                        del positions[trade.symbol]
+        
+        # 计算总余额（可用余额 + 持仓价值）
+        # 这里使用模拟的当前价格
+        symbol_prices = {
+            'BTC/USDT': 64231.5,
+            'ETH/USDT': 3452.2,
+            'SOL/USDT': 142.12,
+            'ARB/USDT': 1.12,
+            'LINK/USDT': 18.45
+        }
+        
+        for symbol, position in positions.items():
+            current_price = symbol_prices.get(symbol, position['avg_price'])
+            position_value = position['quantity'] * current_price
+            total_balance += position_value
+        
+        return {
+            "total_balance": total_balance,
+            "available_balance": available_balance,
+            "positions": positions
+        }

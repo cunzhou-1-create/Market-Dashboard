@@ -205,6 +205,11 @@ const marketAPI = {
   saveAiSubscriptionSettings: (settingsData) => {
     return apiClient.post('/market/ai-subscription/settings', settingsData);
   },
+  
+  // 获取K线数据
+  getKlinesData: (symbol, interval = '30m', limit = 100) => {
+    return apiClient.get('/market/klines', { params: { symbol, interval, limit } });
+  },
 };
 
 // 用户相关API
@@ -286,6 +291,11 @@ const tradeAPI = {
     return apiClient.get('/trade/account');
   },
   
+  // 获取指定交易员的账户信息
+  getTraderAccountInfo: (traderId) => {
+    return apiClient.get(`/trade/account/${traderId}`);
+  },
+  
   // 获取AI交易信号列表
   getAiTradeSignals: () => {
     return apiClient.get('/trade/ai/signals');
@@ -314,6 +324,58 @@ const tradeAPI = {
   // 手动触发AI交易
   triggerAiTrade: () => {
     return apiClient.post('/trade/ai/trigger');
+  },
+  
+  // 模拟交易员管理
+  createSimulatedTrader: (traderData) => {
+    return apiClient.post('/trade/simulated-traders', traderData);
+  },
+  
+  getSimulatedTraders: () => {
+    return apiClient.get('/trade/simulated-traders');
+  },
+  
+  getSimulatedTrader: (traderId) => {
+    return apiClient.get(`/trade/simulated-traders/${traderId}`);
+  },
+  
+  updateSimulatedTrader: (traderId, traderData) => {
+    return apiClient.put(`/trade/simulated-traders/${traderId}`, traderData);
+  },
+  
+  deleteSimulatedTrader: (traderId) => {
+    return apiClient.delete(`/trade/simulated-traders/${traderId}`);
+  },
+  
+  // 模拟交易设置
+  getSimulationSettings: () => {
+    return apiClient.get('/trade/simulation-settings');
+  },
+  
+  updateSimulationSettings: (settingsData) => {
+    return apiClient.put('/trade/simulation-settings', settingsData);
+  },
+  
+  // 模拟交易执行
+  simulateTrade: (traderId, signal) => {
+    return apiClient.post('/trade/simulate-trade', { trader_id: traderId, signal });
+  },
+  
+  runTrader: (traderId) => {
+    return apiClient.post(`/trade/run-trader/${traderId}`);
+  },
+  
+  runAllTraders: () => {
+    return apiClient.post('/trade/run-all-traders');
+  },
+  
+  // 模拟交易报告
+  getSimulationReports: (traderId, limit = 20) => {
+    return apiClient.get('/trade/simulation-reports', { params: { trader_id: traderId, limit } });
+  },
+  
+  generateReport: (traderId, period = '7d') => {
+    return apiClient.post(`/trade/generate-report/${traderId}`, { period });
   },
 };
 

@@ -54,17 +54,52 @@ class AIService:
         }
     
     @staticmethod
-    def generate_trade_signal(db: Session, user_id: Optional[int] = None) -> Optional[Dict]:
-        """生成交易信号"""
+    def generate_trade_signal(db: Session, user_id: Optional[int] = None, symbol: Optional[str] = None, klines_data: Optional[List[Dict]] = None, indicators: Optional[Dict] = None) -> Optional[Dict]:
+        """生成交易信号，支持传入K线数据和技术指标"""
         try:
-            # 获取市场数据
-            market_service = MarketService()
-            market_data = market_service.get_market_data(db)
-            
-            # 构建市场数据摘要
+            # 构建市场数据和技术指标摘要
             market_summary = ""
-            for item in market_data:
-                market_summary += f"{item.symbol}: ${item.price}, 24h变化: {item.change}%\n"
+            
+            if symbol:
+                # 如果指定了币对，获取该币对的详细数据
+                market_service = MarketService()
+                
+                # 获取K线数据
+                if not klines_data:
+                    klines_data = market_service.get_klines_data(symbol, '30m', 50)
+                
+                # 获取技术指标
+                if not indicators:
+                    indicators = market_service.get_technical_indicators(symbol)
+                
+                # 构建K线数据摘要
+                recent_klines = klines_data[-10:]  # 最近10根K线
+                kline_summary = "最近K线数据（30分钟周期）：\n"
+                for i, kline in enumerate(reversed(recent_klines)):
+                    kline_summary += f"K线{i+1}: 开={kline['open']:.2f}, 高={kline['high']:.2f}, 低={kline['low']:.2f}, 收={kline['close']:.2f}, 量={kline['volume']:.2f}\n"
+                
+                # 构建技术指标摘要
+                indicator_summary = "技术指标：\n"
+                indicator_summary += f"RSI: {indicators.get('rsi', 0):.2f}\n"
+                indicator_summary += f"ATR: {indicators.get('atr', 0):.2f}\n"
+                indicator_summary += f"EMA20: {indicators.get('ema', {}).get('ema20', 0):.2f}\n"
+                indicator_summary += f"EMA50: {indicators.get('ema', {}).get('ema50', 0):.2f}\n"
+                indicator_summary += f"MA20: {indicators.get('ma', {}).get('ma20', 0):.2f}\n"
+                indicator_summary += f"MA50: {indicators.get('ma', {}).get('ma50', 0):.2f}\n"
+                indicator_summary += f"布林带: 上轨={indicators.get('bollinger', {}).get('upper', 0):.2f}, 中轨={indicators.get('bollinger', {}).get('middle', 0):.2f}, 下轨={indicators.get('bollinger', {}).get('lower', 0):.2f}\n"
+                indicator_summary += f"支撑位: {indicators.get('support_levels', [])}\n"
+                indicator_summary += f"压力位: {indicators.get('resistance_levels', [])}\n"
+                indicator_summary += f"24小时成交量: {indicators.get('volume', 0):.2f}\n"
+                
+                market_summary = f"交易对: {symbol}\n{kline_summary}\n{indicator_summary}"
+            else:
+                # 否则获取整体市场数据
+                market_service = MarketService()
+                market_data = market_service.get_market_data(db)
+                
+                # 构建市场数据摘要
+                for item in market_data[:10]:  # 只使用前10个币对
+                    market_summary += f"{item.symbol}: ${item.price}, 24h变化: {item.change}%\n"
             
             # 构建千问API请求
             client = AIService.get_qwen_client(user_id, db)
@@ -84,11 +119,11 @@ class AIService:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "你是一个专业的加密货币交易分析师。基于当前市场数据，生成明确的交易信号。每个信号应包含：币种符号、交易方向（buy/sell）、建议价格、建议数量。只返回JSON格式的信号，不要包含其他解释性文本。"
+                        "content": "你是一个专业的加密货币交易分析师。基于K线数据和技术指标，生成明确的交易信号。每个信号应包含：币种符号、交易方向（buy/sell）、建议价格、建议数量。只返回JSON格式的信号，不要包含其他解释性文本。"
                     },
                     {
                         "role": "user",
-                        "content": f"基于以下市场数据，生成交易信号：\n{market_summary}\n\n请返回JSON格式的交易信号，包含：symbol、side、price、quantity字段。"
+                        "content": f"基于以下市场数据和技术指标，生成交易信号：\n{market_summary}\n\n请返回JSON格式的交易信号，包含：symbol、side、price、quantity字段。"
                     }
                 ],
                 "temperature": 0.3,
@@ -162,6 +197,21 @@ class AIService:
         except Exception as e:
             print(f"生成交易信号失败: {str(e)}")
             return None
+    
+    @staticmethod
+    def generate_batch_trade_signals(db: Session, user_id: int, symbols: List[str]) -> List[Dict]:
+        """批量生成交易信号，支持多交易员同时运行"""
+        signals = []
+        
+        for symbol in symbols:
+            try:
+                signal = AIService.generate_trade_signal(db, user_id, symbol)
+                if signal:
+                    signals.append(signal)
+            except Exception as e:
+                print(f"为{symbol}生成交易信号失败: {str(e)}")
+        
+        return signals
     
     @staticmethod
     def execute_trade_signal(db: Session, user_id: int, signal: Dict) -> Optional[Dict]:

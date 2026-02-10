@@ -183,3 +183,16 @@ def get_futures_market_list(
         "data": futures_data,
         "total": total
     }
+
+
+# 获取K线数据
+@router.get("/klines")
+def get_klines_data(
+    symbol: str = Query(..., description="交易对符号，例如 BTC/USDT"),
+    interval: str = Query("30m", description="K线周期，例如 1m, 5m, 15m, 30m, 1h, 4h, 1d"),
+    limit: int = Query(100, ge=1, le=1000, description="返回K线数量"),
+    db: Session = Depends(get_db)
+):
+    """获取K线数据"""
+    klines_data = MarketService.get_klines_data(symbol, interval, limit)
+    return klines_data
